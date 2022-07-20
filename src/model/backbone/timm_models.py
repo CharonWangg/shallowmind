@@ -7,13 +7,13 @@ from ..builder import BACKBONES
 class TimmModels(pl.LightningModule):
     '''call the backbones in TIMM library'''
     def __init__(self, model_name, features_only=True, pretrained=True,
-                 checkpoint_path='', in_channels=3, num_classes=0, **kwargs):
+                 checkpoint_path='', in_channels=3, num_classes=1000, **kwargs):
         super(TimmModels, self).__init__()
         # TODO: add support for switching to not default normalization
         self.model = timm.create_model(
             model_name=model_name,
-            features_only=features_only,
             pretrained=pretrained,
+            features_only=features_only,
             in_chans=in_channels,
             num_classes=num_classes,
             checkpoint_path=checkpoint_path,

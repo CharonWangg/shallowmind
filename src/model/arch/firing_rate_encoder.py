@@ -72,17 +72,17 @@ def get_module_output(model, input_shape, use_cuda=True):
 
 @ARCHS.register_module()
 class FiringRateEncoder(pl.LightningModule):
-    def __init__(self, backbone, head, auxiliary_head=None, dataloader=None):
+    def __init__(self, backbone, head, auxiliary_head=None, dataloader=None, label_smooth=None):
         super(FiringRateEncoder, self).__init__()
         if dataloader is None:
             raise ValueError('dataloader is required for initializing FiringRateEncoder')
 
         # ****************************Modified from official code******************************************
         # Obtain the named tuple fields from the first entry of the first dataloader in the dictionary
-        subject = dataloader.dataset.subject
+        self.subject = dataloader.dataset.subject
         in_name, out_name = "images", "responses"
         session_shape_dict = {k: v.shape for k, v in next(iter(dataloader))[0].items()}
-        n_neurons_dict = {subject: session_shape_dict[out_name][1]}
+        n_neurons_dict = {self.subject: session_shape_dict[out_name][1]}
         input_channels = [session_shape_dict[in_name][1]]
 
         core_input_channels = (
@@ -91,36 +91,52 @@ class FiringRateEncoder(pl.LightningModule):
             else input_channels[0]
         )
 
-        dataloader = {subject: dataloader}
+        dataloader = {self.subject: dataloader}
         grid_mean_predictor, grid_mean_predictor_type, source_grids = prepare_grid(head.grid_mean_predictor, dataloader)
 
-        backbone.input_channels = core_input_channels
+        if backbone.type == 'NeuralPredictors':
+            backbone.input_channels = core_input_channels
         self.backbone = build_backbone(backbone)
 
         in_shapes_dict = {
-            subject: get_module_output(self.backbone, session_shape_dict[in_name])[1:]
+            self.subject: get_module_output(self.backbone, session_shape_dict[in_name])[1:]
         }
 
-        head.in_shape_dict = in_shapes_dict
-        head.n_neurons_dict = n_neurons_dict
-        head.loader = dataloader
-        head.grid_mean_predictor_type = grid_mean_predictor_type
-        head.grid_mean_predictor = grid_mean_predictor
-        head.source_grids = source_grids
+        if head.type == 'NeuralPredictors':
+            head.in_shape_dict = in_shapes_dict
+            head.n_neurons_dict = n_neurons_dict
+            head.loader = dataloader
+            head.grid_mean_predictor_type = grid_mean_predictor_type
+            head.grid_mean_predictor = grid_mean_predictor
+            head.source_grids = source_grids
         self.head = build_head(head)
-        self.auxiliary_head = None
         # ****************************Modified from official code******************************************
+        if label_smooth is not None:
+            self.label_smooth = label_smooth
+        else:
+            self.label_smooth = 0.0
+        self.auxiliary_head = build_head(auxiliary_head)
 
     def exact_feat(self, x):
         x = x['images']
         x = self.backbone(x)
         return x
 
+    def prepare_cls_data(self, feat, label=None):
+        # prepare data from the readout layer
+        batch_size = feat[0].shape[0]
+        grid_shape = (batch_size,) + self.head.model[self.subject].grid_shape[1:]
+        feat = self.head.model[self.subject].mu.new(*grid_shape).squeeze() # (batchsize, n_neurons, mu_dim)
+        # prepare data from the image encoding layer
+        if label is not None:
+            label = torch.where(label < self.label_smooth, torch.zeros_like(label), torch.ones_like(label)).to(dtype=torch.long)
+        return [feat], label
+
     def regularizer(self):
         regularization = torch.zeros(1, device=self.device)
-        if getattr(self.backbone.model, 'regularizer'):
+        if getattr(self.backbone.model, 'regularizer', None) is not None:
             regularization += self.backbone.model.regularizer()
-        if getattr(self.head.model, 'regularizer'):
+        if getattr(self.head.model, 'regularizer', None) is not None:
             regularization += self.head.model.regularizer()
         return regularization
 
@@ -132,9 +148,9 @@ class FiringRateEncoder(pl.LightningModule):
 
     def forward_auxiliary_train(self, feat, label):
         loss = dict()
+        feat, label = self.prepare_cls_data(feat, label)
         if self.auxiliary_head is not None:
-            for idx, auxiliary_head in enumerate(self.auxiliary_head):
-                loss.update(add_prefix(f'auxhead{idx}', auxiliary_head.forward_train(feat, label)))
+            loss.update(add_prefix(f'auxhead', self.auxiliary_head.forward_train(feat, label)))
         return loss
 
     def forward_train(self, x, label):
@@ -155,6 +171,12 @@ class FiringRateEncoder(pl.LightningModule):
     def forward_test(self, x, label=None):
         feat = self.exact_feat(x)
         res = self.head.forward_test(feat, label)
+        if self.auxiliary_head is not None:
+            feat, label = self.prepare_cls_data(feat, label)
+            cls = self.auxiliary_head.forward_test(feat, label)
+            p = cls.pop('output')[..., 1].sigmoid()
+            res.update(add_prefix(f'auxhead', cls))
+            res.update({'output': res['output'] * torch.where(p < 0.5, torch.zeros_like(p), torch.ones_like(p))})
 
         # sum up all losses
         if label is not None:

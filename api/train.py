@@ -10,6 +10,8 @@ from shallowmind.src.data import DataInterface
 from argparse import ArgumentParser
 from shallowmind.src.utils import load_config
 
+torch.multiprocessing.set_sharing_strategy('file_system')
+
 def train():
     parser = ArgumentParser()
     parser = Trainer.add_argparse_args(parser)
