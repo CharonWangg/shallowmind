@@ -104,10 +104,11 @@ class ModelInterface(pl.LightningModule):
                      "monitor": scl_cfg.pop("monitor", "val_loss")}
         scl_cfg.optimizer = optimizer
         # infer the maximun number of epochs and steps
-        if optim_cfg.get('type', 'epoch') == 'epoch':
+        if self.optimization.get('type', 'epoch') == 'epoch':
             scl_cfg.max_epochs = self.optimization.max_iters
             scl_cfg.max_steps = self.num_max_steps
         else:
+            assert self.optimization.get('type') == 'step', "optimization type must be epoch or step"
             scl_cfg.max_steps = self.optimization.max_iters
             scl_cfg.max_epochs = self.num_max_epochs
         scheduler.update({"scheduler": build_scheduler(scl_cfg)})
@@ -144,29 +145,25 @@ class ModelInterface(pl.LightningModule):
             return self.trainer.max_epochs
 
         limit_batches = self.trainer.limit_train_batches
-        batches = len(self.train_dataloader())
+        batches = len(self.trainer.datamodule.train_dataloader())
         batches = min(batches, limit_batches) if isinstance(limit_batches, int) else int(limit_batches * batches)
 
-        num_devices = max(1, self.trainer.num_gpus, self.trainer.num_processes)
-        if self.trainer.tpu_cores:
-            num_devices = max(num_devices, self.trainer.tpu_cores)
+        num_devices = max(1, self.trainer.num_devices)
 
         effective_accum = self.trainer.accumulate_grad_batches * num_devices
-        return  self.trainer.max_steps // (batches // effective_accum)
+        return self.trainer.max_steps // (batches // effective_accum)
 
     @property
     def num_max_steps(self):
         # get max training steps inferred from datamodule and devices
-        if self.trainer.max_steps:
+        if self.trainer.max_steps > 0:
             return self.trainer.max_steps
 
         limit_batches = self.trainer.limit_train_batches
-        batches = len(self.train_dataloader())
+        batches = len(self.trainer.datamodule.train_dataloader())
         batches = min(batches, limit_batches) if isinstance(limit_batches, int) else int(limit_batches * batches)
 
-        num_devices = max(1, self.trainer.num_gpus, self.trainer.num_processes)
-        if self.trainer.tpu_cores:
-            num_devices = max(num_devices, self.trainer.tpu_cores)
+        num_devices = max(1, self.trainer.num_devices)
 
         effective_accum = self.trainer.accumulate_grad_batches * num_devices
         return (batches // effective_accum) * self.trainer.max_epochs

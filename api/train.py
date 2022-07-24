@@ -1,6 +1,7 @@
 import os
 import ast
 import torch
+import warnings
 import pytorch_lightning as pl
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger, CometLogger
@@ -44,6 +45,11 @@ def train():
 
     # load model and data config settings from config file
     cfg = load_config(args.cfg)
+
+    # ignore warning
+    if not cfg.get('warning', True):
+        warnings.filterwarnings('ignore')
+
     # save config file to log directory
     cfg.base_name = args.cfg.split('/')[-1]
     if os.path.exists(os.path.join(cfg.log.work_dir, cfg.log.exp_name)):
