@@ -4,9 +4,9 @@ from ..builder import build_loss, HEADS
 
 @HEADS.register_module()
 class BaseHead(pl.LightningModule):
-    def __init__(self, in_channels, channels, num_classes, dropout=0.1,
-                 act_cfg=dict(type='ReLU'), in_index=-1,
-                 losses=dict(type='TorchLoss', loss_name='CrossEntropyLoss', loss_weight=1.0)):
+    def __init__(self, in_channels, channels, num_classes, dropout=0.1, in_index=-1,
+                 act_cfg=dict(type='ReLU'), norm_cfg=dict(type='BatchNorm1d'),
+                 losses=dict(type='TorchLoss', loss_name='CrossEntropyLoss', loss_weight=1.0),):
         super(BaseHead, self).__init__()
         self.__dict__.update(locals())
 
@@ -21,6 +21,7 @@ class BaseHead(pl.LightningModule):
                    but got {type(losses)}')
 
         self.dropout = (nn.Dropout(dropout) if dropout > 0 else None)
+        self.norm = getattr(nn, norm_cfg['type'])
         self.activation = getattr(nn, act_cfg['type'])()
         # 3 layers MLP
         if channels is None:
@@ -34,10 +35,10 @@ class BaseHead(pl.LightningModule):
         elif isinstance(channels, int):
             self.model = nn.Sequential(self.dropout,
                                        nn.Linear(in_channels, channels),
-                                       nn.BatchNorm1d(channels),
+                                       self.norm(channels),
                                        self.activation,
                                        nn.Linear(channels, channels),
-                                       nn.BatchNorm1d(channels),
+                                       self.norm(channels),
                                        self.activation,
                                        nn.Linear(channels, num_classes))
         elif isinstance(channels, list):
@@ -46,27 +47,27 @@ class BaseHead(pl.LightningModule):
             for depth in range(len(channels) - 2):
                 self.model.extend([self.dropout,
                                    nn.Linear(channels[depth], channels[depth + 1]),
-                                   nn.BatchNorm1d(channels[depth + 1]),
+                                   self.norm(channels[depth + 1]),
                                    self.activation])
             self.model = nn.Sequential(*self.model)
             self.model.append(nn.Linear(channels[-2], channels[-1]))
         else:
             raise TypeError(f'channels must be an int or sequence of int')
 
-    def forward(self, x):
+    def forward(self, x, **kwargs):
         '''use specific backbone layer output to forward'''
-        return self.model(x[self.in_index])
+        return self.model(x[self.in_index], **kwargs)
 
-    def forward_train(self, input, label):
+    def forward_train(self, input, label, **kwargs):
         '''forward for training'''
-        output = self.forward(input)
+        output = self.forward(input, **kwargs)
         losses = self.parse_losses(output, label)
 
         return losses
 
-    def forward_test(self, input, label=None):
+    def forward_test(self, input, label=None, **kwargs):
         '''forward for testing'''
-        output = self.forward(input)
+        output = self.forward(input, **kwargs)
         if label is not None:
             losses = self.parse_losses(output, label)
             return {**{'output':output}, **losses}

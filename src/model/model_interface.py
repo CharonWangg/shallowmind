@@ -1,3 +1,4 @@
+from copy import deepcopy
 import torch
 import pytorch_lightning as pl
 from shallowmind.src.model.builder import build_arch, build_optimizer, build_scheduler, build_metric
@@ -7,15 +8,32 @@ class ModelInterface(pl.LightningModule):
     def __init__(self, model, optimization):
         super().__init__()
         self.save_hyperparameters()
+        self.model = deepcopy(model)
+        self.optimization = deepcopy(optimization)
         self.configure_metrics()
         self.configure_meta_keys()
-        model.pop('evaluation')
-        self.model = build_arch(model)
+        self.model.pop('evaluation')
+        self.model = build_arch(self.model)
+        if self.hparams.model.get('dataloader', None) is not None:
+            self.hparams.model.pop('dataloader')
+
+    def forward(self, x):
+        # for testing
+        return self.model.forward_test(x)['output']
 
     def training_step(self, batch, batch_idx):
         input, label = batch
         output = self.model.forward_train(input, label)
         loss = output['loss']
+
+        # logging all output
+        for name, value in output.items():
+            if name != 'loss':
+                self.log(f'train_{name}', value, on_step=True, on_epoch=True, prog_bar=False)
+        # logging lr
+        for opt in self.trainer.optimizers:
+            # dirty hack to get the name of the optimizer
+            self.log(f"lr-{str(opt).split('(')[0].strip()}", opt.param_groups[0]['lr'], prog_bar=True, on_step=True, on_epoch=False)
         # logging loss
         self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True)
         return loss
@@ -27,6 +45,10 @@ class ModelInterface(pl.LightningModule):
         meta_data = [{k:input[k][idx] for k in self.meta_keys} for idx in range(label.shape[0])] \
             if self.meta_keys and isinstance(self.meta_keys, list) else None
 
+        # logging all output
+        for name, value in output.items():
+            if name != 'output' and name != 'loss':
+                self.log(f'val_{name}', value, on_step=True, on_epoch=True, prog_bar=False)
         # logging loss
         self.log("val_loss", output['loss'], on_step=True, on_epoch=True, prog_bar=True)
         return {'meta_data': meta_data, 'pred': output['output'], 'label': label}
@@ -50,6 +72,10 @@ class ModelInterface(pl.LightningModule):
         meta_data = [{k: input[k][idx] for k in self.meta_keys} for idx in range(label.shape[0])] \
             if self.meta_keys and isinstance(self.meta_keys, list) else None
 
+        # logging all output
+        for name, value in output.items():
+            if name != 'output' and name != 'loss':
+                self.log(f'test_{name}', value, on_step=True, on_epoch=True, prog_bar=False)
         # logging loss
         self.log("test_loss", output['loss'], on_step=True, on_epoch=True, prog_bar=True)
         return {'meta_data': meta_data, 'pred': output['output'], 'label': label}
@@ -68,23 +94,28 @@ class ModelInterface(pl.LightningModule):
 
     def configure_optimizers(self):
         # optimizer
-        optim_cfg = self.hparams.optimization.optimizer.copy()
-        optim_cfg['model'] = self.model
+        optim_cfg = deepcopy(self.optimization.optimizer)
+        optim_cfg.model = self.model
         optimizer = build_optimizer(optim_cfg)
 
         # scheduler
-        scl_cfg = self.hparams.optimization.scheduler.copy()
+        scl_cfg = deepcopy(self.optimization.scheduler)
         scheduler = {"interval": scl_cfg.pop("interval", "step"),
                      "monitor": scl_cfg.pop("monitor", "val_loss")}
-        scl_cfg['optimizer'] = optimizer
-        scl_cfg['max_epochs'] = self.hparams.optimization.max_epochs
-        scl_cfg['max_iters'] = self.hparams.optimization.max_iters
+        scl_cfg.optimizer = optimizer
+        # infer the maximun number of epochs and steps
+        if optim_cfg.get('type', 'epoch') == 'epoch':
+            scl_cfg.max_epochs = self.optimization.max_iters
+            scl_cfg.max_steps = self.num_max_steps
+        else:
+            scl_cfg.max_steps = self.optimization.max_iters
+            scl_cfg.max_epochs = self.num_max_epochs
         scheduler.update({"scheduler": build_scheduler(scl_cfg)})
 
         return {"optimizer": optimizer, "lr_scheduler": scheduler}
 
     def configure_metrics(self):
-        metrics = self.hparams.model.evaluation.get('metrics', dict(type='TorchMetircs', metric_name='Accuracy')).copy()
+        metrics = deepcopy(self.model.evaluation.get('metrics', dict(type='TorchMetircs', metric_name='Accuracy')))
         self.metrics = []
         if isinstance(metrics, list):
             for metric in metrics:
@@ -95,7 +126,7 @@ class ModelInterface(pl.LightningModule):
             raise TypeError(f"Metrics must be a list or a dict, received {type(metrics)} type!")
 
     def configure_meta_keys(self):
-        metrics = self.hparams.model.evaluation.get('metrics', dict(type='TorchMetircs', metric_name='Accuracy')).copy()
+        metrics = deepcopy(self.model.evaluation.get('metrics', dict(type='TorchMetircs', metric_name='Accuracy')).copy())
         self.meta_keys = []
         if isinstance(metrics, list):
             for metric in metrics:
@@ -105,6 +136,40 @@ class ModelInterface(pl.LightningModule):
         else:
             raise TypeError(f"Metrics must be a list or a dict, received {type(metrics)} type!")
         self.meta_keys = [key for key in self.meta_keys if key is not None]
+
+    @property
+    def num_max_epochs(self):
+        # get max training epochs inferred from datamodule and devices
+        if self.trainer.max_epochs:
+            return self.trainer.max_epochs
+
+        limit_batches = self.trainer.limit_train_batches
+        batches = len(self.train_dataloader())
+        batches = min(batches, limit_batches) if isinstance(limit_batches, int) else int(limit_batches * batches)
+
+        num_devices = max(1, self.trainer.num_gpus, self.trainer.num_processes)
+        if self.trainer.tpu_cores:
+            num_devices = max(num_devices, self.trainer.tpu_cores)
+
+        effective_accum = self.trainer.accumulate_grad_batches * num_devices
+        return  self.trainer.max_steps // (batches // effective_accum)
+
+    @property
+    def num_max_steps(self):
+        # get max training steps inferred from datamodule and devices
+        if self.trainer.max_steps:
+            return self.trainer.max_steps
+
+        limit_batches = self.trainer.limit_train_batches
+        batches = len(self.train_dataloader())
+        batches = min(batches, limit_batches) if isinstance(limit_batches, int) else int(limit_batches * batches)
+
+        num_devices = max(1, self.trainer.num_gpus, self.trainer.num_processes)
+        if self.trainer.tpu_cores:
+            num_devices = max(num_devices, self.trainer.tpu_cores)
+
+        effective_accum = self.trainer.accumulate_grad_batches * num_devices
+        return (batches // effective_accum) * self.trainer.max_epochs
 
 
 

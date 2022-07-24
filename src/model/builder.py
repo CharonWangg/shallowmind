@@ -2,6 +2,7 @@ from ..utils.config import Registry, build_from_cfg
 
 ARCHS = Registry('arch')
 BACKBONES = Registry('backbone')
+NECKS = Registry('neck')
 HEADS = Registry('head')
 OPTIMIZERS = Registry('optimizer')
 SCHEDULERS = Registry('scheduler')
@@ -15,6 +16,10 @@ def build_arch(cfg):
 def build_backbone(cfg):
     '''build backbone with given config'''
     return build_from_cfg(cfg, BACKBONES)
+
+def build_neck(cfg):
+    '''build neck with given config'''
+    return build_from_cfg(cfg, NECKS)
 
 def build_head(cfg):
     '''build head with given config'''
