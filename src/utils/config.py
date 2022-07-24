@@ -1,6 +1,7 @@
 '''modified from mmcv https://github.com/open-mmlab/mmcv/blob/master/mmcv/utils/registry.py'''
 import ast
 import copy
+import re
 import os
 import os.path as osp
 import platform

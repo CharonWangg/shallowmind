@@ -4,7 +4,7 @@ from ..builder import build_loss, HEADS
 
 @HEADS.register_module()
 class BaseHead(pl.LightningModule):
-    def __init__(self, in_channels, channels, num_classes, dropout=0.1, in_index=-1,
+    def __init__(self, in_channels=32, channels=None, num_classes=2, dropout=0.1, in_index=-1,
                  act_cfg=dict(type='ReLU'), norm_cfg=dict(type='BatchNorm1d'),
                  losses=dict(type='TorchLoss', loss_name='CrossEntropyLoss', loss_weight=1.0),):
         super(BaseHead, self).__init__()

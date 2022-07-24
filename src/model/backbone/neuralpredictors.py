@@ -12,4 +12,9 @@ class NeuralPredictors(pl.LightningModule):
 
     def forward(self, x):
         x = self.model(x)
+        if isinstance(x, list) or isinstance(x, tuple):
+            return x
         return [x]
+
+    def regularizer(self, **kwargs):
+        return self.model.regularizer(**kwargs)

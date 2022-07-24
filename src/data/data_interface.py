@@ -49,29 +49,29 @@ class DataInterface(pl.LightningDataModule):
         if isinstance(self.trainset, list):
             dataloaders =  {trainset.subject:
                         DataLoader(trainset, batch_size=self.data_cfg.train_batch_size, sampler=trainset.data_sampler,
-                                   num_workers=self.data_cfg.num_workers, pin_memory=True) for trainset in self.trainset}
+                                   num_workers=self.data_cfg.num_workers) for trainset in self.trainset}
             return MaxCycleLoader(dataloaders)
         else:
             return DataLoader(self.trainset, batch_size=self.data_cfg.train_batch_size, sampler=self.trainset.data_sampler,
-                              num_workers=self.data_cfg.num_workers, pin_memory=True)
+                              num_workers=self.data_cfg.num_workers)
 
     def val_dataloader(self):
         if isinstance(self.valset, list):
             dataloaders =  {valset.subject:
                         DataLoader(valset, batch_size=self.data_cfg.val_batch_size, sampler=valset.data_sampler,
-                                   num_workers=self.data_cfg.num_workers, shuffle=False, pin_memory=True) for valset in self.valset}
+                                   num_workers=self.data_cfg.num_workers, shuffle=False) for valset in self.valset}
             return MaxCycleLoader(dataloaders)
         else:
             return DataLoader(self.valset, batch_size=self.data_cfg.val_batch_size, sampler=self.valset.data_sampler,
-                              num_workers=self.data_cfg.num_workers, shuffle=False, pin_memory=True)
+                              num_workers=self.data_cfg.num_workers, shuffle=False)
 
     def test_dataloader(self):
         if isinstance(self.testset, list):
             dataloaders =  {testset.subject:
                         DataLoader(testset, batch_size=self.data_cfg.test_batch_size, sampler=testset.data_sampler,
-                                   num_workers=self.data_cfg.num_workers, shuffle=False, pin_memory=True) for testset in self.testset}
+                                   num_workers=self.data_cfg.num_workers, shuffle=False) for testset in self.testset}
             return MaxCycleLoader(dataloaders)
         else:
             return DataLoader(self.testset, batch_size=self.data_cfg.test_batch_size, sampler=self.testset.data_sampler,
-                              num_workers=self.data_cfg.num_workers, shuffle=False, pin_memory=True)
+                              num_workers=self.data_cfg.num_workers, shuffle=False)
 

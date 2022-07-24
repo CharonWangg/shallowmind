@@ -2,11 +2,12 @@ import timm
 import torch.nn as nn
 import pytorch_lightning as pl
 from ..builder import BACKBONES
+from ast import literal_eval
 
 @BACKBONES.register_module()
 class TimmModels(pl.LightningModule):
     '''call the backbones in TIMM library'''
-    def __init__(self, model_name, features_only=True, pretrained=True,
+    def __init__(self, model_name, features_only=True, pretrained=True, pooling=True,
                  checkpoint_path='', in_channels=3, num_classes=1000, **kwargs):
         super(TimmModels, self).__init__()
         # TODO: add support for switching to not default normalization

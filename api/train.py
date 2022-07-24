@@ -74,6 +74,10 @@ def train():
 
     # data
     data_module = DataInterface(cfg.data)
+    # set ddp sampler
+    if args.devices > 1:
+        if cfg.data.train.get('sampler', None) is None:
+            args.replace_sampler_ddp = False
 
     # optimization
     if cfg.optimization.type == 'epoch':
@@ -126,13 +130,15 @@ def train():
     # used to save the best model
     if cfg.log.checkpoint is not None:
         if cfg.log.checkpoint.type == 'ModelCheckpoint':
+            dirpath = cfg.log.checkpoint.get('dirpath', os.path.join(cfg.log.work_dir, cfg.log.exp_name, 'ckpts'))
+            filename = cfg.log.checkpoint.get('filename', f'exp_name={cfg.log.exp_name}-' + \
+                                                        f'cfg={cfg.base_name.strip(".py")}-' + \
+                                                        f'bs={cfg.data.train_batch_size}-'+ \
+                                                        f'{{{cfg.log.monitor}:.3f}}')
             callbacks.append(plc.ModelCheckpoint(
                 monitor=cfg.log.monitor,
-                dirpath=os.path.join(cfg.log.work_dir, cfg.log.exp_name, 'ckpts'),
-                filename=f'exp_name={cfg.log.exp_name}-' + \
-                        f'cfg={cfg.base_name.strip(".py")}-' + \
-                        f'bs={cfg.data.train_batch_size}-'+ \
-                        f'{{{cfg.log.monitor}:.3f}}',
+                dirpath=dirpath,
+                filename=filename,
                 save_top_k=cfg.log.checkpoint.top_k,
                 mode=cfg.log.checkpoint.mode,
                 verbose=cfg.log.checkpoint.verbose,

@@ -30,6 +30,7 @@ class BaseNeck(pl.LightningModule):
         return x
 
     def forward(self, x, dim=1, **kwargs):
+
         if self.adaptive_sample:
             # resize all feature maps to the same size
             x = self.adaptive_sample_feature(x)

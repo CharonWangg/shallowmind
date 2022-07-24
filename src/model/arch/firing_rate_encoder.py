@@ -120,7 +120,7 @@ class FiringRateEncoder(pl.LightningModule):
         self.backbone = build_backbone(backbone)
 
         if neck is not None:
-            neck.in_channels = getattr(self.backbone, 'feature_channels', [64])
+            neck.in_channels = getattr(self.backbone, 'feature_channels', [64, 64, 64, 64])
             self.neck = build_neck(neck)
         else:
             self.neck = None
@@ -132,7 +132,7 @@ class FiringRateEncoder(pl.LightningModule):
             for k, v in session_shape_dict.items()
         }
 
-        if head.type == 'NeuralPredictors':
+        if head.type in ['NeuralPredictors', "ImageMappingReadout", "MultipleImageMappingReadout",]:
             head.in_shape_dict = in_shapes_dict
             head.n_neurons_dict = n_neurons_dict
             head.loader = dataloader
@@ -143,8 +143,12 @@ class FiringRateEncoder(pl.LightningModule):
             # tikhanov_regularization
             if head.get('tikhonov_regularization', None) is not None:
                 # redundant call source_grids
+                _3d_source_grids = {
+                                    k: v.dataset.dataset.neurons.cell_motor_coordinates
+                                    for k, v in dataloader.items()
+                                }
                 pairwise_neuron_distances = {k: pairwise_neuron_dist(torch.tensor(v, dtype=torch.float32))
-                                             for k, v in source_grids.items()}
+                                             for k, v in _3d_source_grids.items()}
                 pairwise_neuron_similarities = {k: dist2reg(dist, scale=head.pop('tikhonov_regularization'))
                                                 for k, dist in pairwise_neuron_distances.items()}
                 head.spatial_similarity = pairwise_neuron_similarities
@@ -198,10 +202,11 @@ class FiringRateEncoder(pl.LightningModule):
 
     def regularizer(self, data_key=None):
         regularization = torch.zeros(1, device=self.device)
-        if getattr(self.backbone.model, 'regularizer', None) is not None:
+        if getattr(self.backbone, 'regularizer', None) is not None:
             regularization += self.backbone.model.regularizer()
-        if getattr(self.head.model, 'regularizer', None) is not None:
-            regularization += self.head.model.regularizer(data_key=data_key)
+        if getattr(self.head, 'regularizer', None) is not None:
+            regularization += self.head.regularizer(data_key=data_key)
+
         return regularization
 
     def forward_decode_train(self, feat, label, **kwargs):
