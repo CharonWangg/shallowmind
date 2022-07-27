@@ -63,14 +63,15 @@ def train():
     # log(logger, checkpoint, work_dir) -> Trainer /other
 
    # other setting
+    # other setting
     if cfg.get('cudnn_benchmark', True):
-        torch.backends.cudnn.benchmark = True
+        args.benchmark = True
 
     if cfg.get('deterministic', False):
         if cfg.get('cudnn_benchmark', True):
             print('cudnn_benchmark will be disabled')
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
+        args.deterministic = True
+        args.benchmark = False
 
     # data
     data_module = DataInterface(cfg.data)

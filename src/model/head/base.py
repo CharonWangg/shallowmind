@@ -6,7 +6,8 @@ from ..builder import build_loss, HEADS
 class BaseHead(pl.LightningModule):
     def __init__(self, in_channels=32, channels=None, num_classes=2, dropout=0.1, in_index=-1,
                  act_cfg=dict(type='ReLU'), norm_cfg=dict(type='BatchNorm1d'),
-                 losses=dict(type='TorchLoss', loss_name='CrossEntropyLoss', loss_weight=1.0),):
+                 losses=dict(type='TorchLoss', loss_name='CrossEntropyLoss', loss_weight=1.0),
+                 **kwargs):
         super(BaseHead, self).__init__()
         self.__dict__.update(locals())
 
@@ -56,7 +57,7 @@ class BaseHead(pl.LightningModule):
 
     def forward(self, x, **kwargs):
         '''use specific backbone layer output to forward'''
-        return self.model(x[self.in_index], **kwargs)
+        return self.model(x[self.in_index].view(x[self.in_index].shape[0], -1), **kwargs)
 
     def forward_train(self, input, label, **kwargs):
         '''forward for training'''

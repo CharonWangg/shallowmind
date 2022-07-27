@@ -6,18 +6,26 @@ from ..builder import BACKBONES
 
 @BACKBONES.register_module()
 class Transformer(pl.LightningModule):
-    def __init__(self, input_size=None, hidden_size=None, trm_hidden_size=None,
+    def __init__(self, input_size=None, embedding_size=None, hidden_size=None,
                  input_length=None, num_layers=None, nhead=None, dropout=0.1,
                  high_dim_projection=True):
         super().__init__()
-        self.save_hyperparameters()
         self.__dict__.update(locals())
-        self.emb = nn.Linear(input_size, hidden_size) if high_dim_projection else None
-        self.pos_encoder = PositionalEncoding(hidden_size, input_length)
-        encoder_layer = nn.TransformerEncoderLayer(d_model=hidden_size, nhead=nhead,
-                                                   dim_feedforward=trm_hidden_size,
-                                                   dropout=dropout, batch_first=True)
-        self.trm = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+        if high_dim_projection:
+            self.emb = nn.Linear(input_size, embedding_size)
+            self.pos_encoder = PositionalEncoding(embedding_size, input_length)
+            encoder_layer = nn.TransformerEncoderLayer(d_model=embedding_size, nhead=nhead,
+                                                       dim_feedforward=hidden_size,
+                                                       dropout=dropout, batch_first=True)
+            self.trm = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+        else:
+            self.emb = None
+            self.pos_encoder = PositionalEncoding(input_size, input_length)
+            encoder_layer = nn.TransformerEncoderLayer(d_model=input_size, nhead=nhead,
+                                                       dim_feedforward=hidden_size,
+                                                       dropout=dropout, batch_first=True)
+            self.trm = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+
 
     def forward(self, x):
         # high level projection:

@@ -33,7 +33,7 @@ class ModelInterface(pl.LightningModule):
         # logging lr
         for opt in self.trainer.optimizers:
             # dirty hack to get the name of the optimizer
-            self.log(f"lr-{str(opt).split('(')[0].strip()}", opt.param_groups[0]['lr'], prog_bar=True, on_step=True, on_epoch=False)
+            self.log(f"lr-{type(opt).__name__}", opt.param_groups[0]['lr'], prog_bar=True, on_step=True, on_epoch=False)
         # logging loss
         self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True)
         return loss
@@ -92,28 +92,61 @@ class ModelInterface(pl.LightningModule):
             res = metric(pred, label) if getattr(metric, 'by', None) is None else metric(pred, label, meta_data)
             self.log(f"test_{metric.metric_name}", res, on_step=False, on_epoch=True, prog_bar=True)
 
+
+    def lr_scheduler_step(self, scheduler, optimizer_idx, metric):
+        if getattr(self, 'warmup_scheduler', None) is not None:
+            with self.warmup_scheduler.dampening():
+                if metric is None:
+                    scheduler.step()
+                else:
+                    scheduler.step(metric)
+        else:
+            if metric is None:
+                scheduler.step()
+            else:
+                scheduler.step(metric)
+
     def configure_optimizers(self):
+        # infer the maximun number of epochs and steps
+        if self.optimization.get('type', 'epoch') == 'epoch':
+            max_epochs = self.optimization.max_iters
+            max_steps = self.num_max_steps
+        else:
+            assert self.optimization.get('type') == 'step', "optimization type must be epoch or step"
+            max_steps = self.optimization.max_iters
+            max_epochs = self.num_max_epochs
         # optimizer
         optim_cfg = deepcopy(self.optimization.optimizer)
         optim_cfg.model = self.model
+        # New optimizer Ranger21
+        optim_cfg.update({'max_epochs': max_epochs, 'max_steps': max_steps}) if optim_cfg.type == 'Ranger21' else None
         optimizer = build_optimizer(optim_cfg)
 
         # scheduler
-        scl_cfg = deepcopy(self.optimization.scheduler)
-        scheduler = {"interval": scl_cfg.pop("interval", "step"),
-                     "monitor": scl_cfg.pop("monitor", "val_loss")}
-        scl_cfg.optimizer = optimizer
-        # infer the maximun number of epochs and steps
-        if self.optimization.get('type', 'epoch') == 'epoch':
-            scl_cfg.max_epochs = self.optimization.max_iters
-            scl_cfg.max_steps = self.num_max_steps
-        else:
-            assert self.optimization.get('type') == 'step', "optimization type must be epoch or step"
-            scl_cfg.max_steps = self.optimization.max_iters
-            scl_cfg.max_epochs = self.num_max_epochs
-        scheduler.update({"scheduler": build_scheduler(scl_cfg)})
+        if self.optimization.get('scheduler', None) is not None:
+            scl_cfg = deepcopy(self.optimization.scheduler)
+            scl_cfg.max_epochs = max_epochs
+            scl_cfg.max_steps = max_steps
+            scheduler = {"interval": scl_cfg.pop("interval", "step"),
+                         "monitor": scl_cfg.pop("monitor", "train_loss")}
 
-        return {"optimizer": optimizer, "lr_scheduler": scheduler}
+            # warmup
+            warmup_cfg = deepcopy(scl_cfg.pop('warmup', None))
+            if warmup_cfg is not None:
+                period = warmup_cfg.get('period', 0.1)
+                if not isinstance(period, float):
+                    period = period / max_epochs if self.optimization.get('type', 'epoch') == 'epoch' else period / max_steps
+                warmup_cfg.period = int(period * max_steps) if scheduler.get('"interval"', 'step') == 'step' else int(period * max_epochs)
+                warmup_cfg.optimizer = optimizer
+                self.warmup_scheduler = build_scheduler(warmup_cfg)
+
+
+            scl_cfg.optimizer = optimizer
+
+            scheduler.update({"scheduler": build_scheduler(scl_cfg)})
+            return {"optimizer": optimizer, "lr_scheduler": scheduler}
+        else:
+            return {"optimizer": optimizer}
 
     def configure_metrics(self):
         metrics = deepcopy(self.model.evaluation.get('metrics', dict(type='TorchMetircs', metric_name='Accuracy')))

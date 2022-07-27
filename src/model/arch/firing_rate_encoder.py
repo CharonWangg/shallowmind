@@ -139,6 +139,12 @@ class FiringRateEncoder(pl.LightningModule):
             head.grid_mean_predictor_type = grid_mean_predictor_type
             head.grid_mean_predictor = grid_mean_predictor
             head.source_grids = source_grids
+            # add stats data to KL/JS loss
+            for loss in head.losses:
+                if loss.get('type') == 'KLLoss':
+                    loss.stat = {k: (v.dataset.dataset.statistics['responses']['all']["mean"],
+                                     v.dataset.dataset.statistics['responses']['all']["std"])
+                                 for k, v in dataloader.items()}
 
             # tikhanov_regularization
             if head.get('tikhonov_regularization', None) is not None:

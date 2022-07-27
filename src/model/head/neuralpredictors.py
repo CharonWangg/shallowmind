@@ -24,6 +24,7 @@ class NeuralPredictors(BaseHead):
                  **kwargs):
         super(NeuralPredictors, self).__init__(in_index=in_index, losses=losses)
         self.elu_offset = elu_offset
+        self.stat = kwargs.pop('stat', None)
         self.spatial_sim = kwargs.pop('spatial_similarity', None)
 
         if multiple:

@@ -28,6 +28,8 @@ class BaseEncoderDecoder(pl.LightningModule):
             self.auxiliary_head = None
 
     def exact_feat(self, x):
+        if isinstance(x, dict):
+            x = x['images']
         x = self.backbone(x)
         return x
 

@@ -1,6 +1,6 @@
 import torch
-import transformers
 from ..builder import OPTIMIZERS
+from ranger21 import Ranger21
 
 @OPTIMIZERS.register_module()
 class SGD(torch.optim.SGD):
@@ -27,7 +27,17 @@ class RMSprop(torch.optim.RMSprop):
         super(RMSprop, self).__init__(params=params, **kwargs)
 
 @OPTIMIZERS.register_module()
-class Bert(transformers.AdamW):
+class Ranger21(Ranger21):
+    def __init__(self, model, **kwargs):
+        params = model.parameters()
+        num_epochs = kwargs.pop('max_epochs', -1)
+        num_batches_per_epoch = kwargs.pop('max_steps', -1) // num_epochs
+        super(Ranger21, self).__init__(params=params, num_epochs=num_epochs,
+                                     num_batches_per_epoch=num_batches_per_epoch,
+                                     **kwargs)
+
+@OPTIMIZERS.register_module()
+class Bert(torch.optim.AdamW):
     def __init__(self, model, weight_decay=5e-4, eps=1e-08, correct_bias=True, no_decay=["bias", "LayerNorm.weight"]):
         params = [
             {
@@ -40,6 +50,3 @@ class Bert(transformers.AdamW):
             },
         ]
         super(Bert, self).__init__(params=params, weight_decay=weight_decay, eps=eps, correct_bias=correct_bias)
-
-
-

@@ -249,7 +249,7 @@ class IRNet(nn.Module):
             # Block35(scale=0.17),
             # Block35(scale=0.17)
         )
-        self.feature_info += [dict(num_chs=320, reduction=8, module='repeat')]
+        # self.feature_info += [dict(num_chs=320, reduction=8, module='repeat')]
         #
         # self.mixed_6a = Mixed_6a()
         # self.repeat_1 = nn.Sequential(
@@ -297,6 +297,8 @@ class IRNet(nn.Module):
         else:
             self.init_weights()
 
+        self.feature_channels = [32, 64, 192, 320]
+
     def init_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -313,13 +315,18 @@ class IRNet(nn.Module):
         self.load_state_dict(model.state_dict(), strict=False)
 
     def forward(self, x):
+        xs = []
         x = self.conv2d_1a(x)
+        xs.append(x)
         x = self.conv2d_2a(x)
         x = self.conv2d_2b(x)
+        xs.append(x)
         x = self.conv2d_3b(x)
         x = self.conv2d_4a(x)
+        xs.append(x)
         x = self.mixed_5b(x)
-        # x = self.repeat(x)
+        x = self.repeat(x)
+        xs.append(x)
         # x = self.mixed_6a(x)
         # print(x.shape)
         # x = self.repeat_1(x)
@@ -331,5 +338,5 @@ class IRNet(nn.Module):
         # x = self.block8(x)
         # print(x.shape)
         # x = self.conv2d_7b(x)
-        return [x]
+        return xs
 

@@ -1,7 +1,9 @@
 import cv2
 import copy
+import torch
 import numpy as np
 import albumentations
+from copy import deepcopy
 from albumentations import Compose
 from albumentations.pytorch.transforms import ToTensorV2
 import neuralpredictors.data.transforms as neural_transforms
@@ -112,6 +114,36 @@ class ImageSelection:
             ), "image_ids contain validation or test images"
         else:
             subset_idx = np.where(self.tier_array == tier)[0]
+
+
+@PIPELINES.register_module()
+class AddExtraFeatureAsChannels:
+    '''Add extra feature as channels to the images'''
+    def __init__(self, extra_feature_key):
+        if isinstance(extra_feature_key, str):
+            extra_feature_key = [extra_feature_key]
+        elif not isinstance(extra_feature_key, list):
+            print('extra_feature_key has to be a list')
+        self.extra_feature_key = extra_feature_key
+
+    def __call__(self, data):
+        orig_feature = deepcopy(data['image'])
+        for key in self.extra_feature_key:
+            extra_feature = data[key]
+            orig_feature = np.concatenate(
+                (
+                    orig_feature,
+                    np.ones((1, *orig_feature.shape[-(len(orig_feature.shape) - 1) :]))
+                    * np.expand_dims(extra_feature, axis=((len(orig_feature.shape) - 2), (len(orig_feature.shape) - 1))),
+                ),
+                axis=len(orig_feature.shape) - 3,
+            )
+        data['image'] = orig_feature.astype(np.float32)
+
+        return data
+
+
+
 
 @PIPELINES.register_module()
 class NeuronSelection:

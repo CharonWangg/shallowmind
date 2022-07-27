@@ -9,6 +9,7 @@ SCHEDULERS = Registry('scheduler')
 LOSSES = Registry('loss')
 METRICS = Registry('metric')
 
+
 def build_arch(cfg):
     '''build arch with given config'''
     return build_from_cfg(cfg, ARCHS)

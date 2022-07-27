@@ -16,7 +16,7 @@ class NMOS6502(torch.utils.data.Dataset):
         self.pipeline = Compose(pipeline)
         self.dataset = self.check_files()
         if sampler is not None:
-            self.data_sampler = build_sampler(sampler)
+            self.data_sampler = getattr(torch.utils.data, sampler)(self)
         else:
             self.data_sampler = torch.utils.data.RandomSampler(self)
 
