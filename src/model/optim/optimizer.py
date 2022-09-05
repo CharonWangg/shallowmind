@@ -1,6 +1,9 @@
 import torch
 from ..builder import OPTIMIZERS
-from ranger21 import Ranger21
+# try:
+#     from ranger21 import Ranger21
+# except ImportError:
+#     Ranger21 = None
 
 @OPTIMIZERS.register_module()
 class SGD(torch.optim.SGD):
@@ -26,15 +29,15 @@ class RMSprop(torch.optim.RMSprop):
         params = model.parameters()
         super(RMSprop, self).__init__(params=params, **kwargs)
 
-@OPTIMIZERS.register_module()
-class Ranger21(Ranger21):
-    def __init__(self, model, **kwargs):
-        params = model.parameters()
-        num_epochs = kwargs.pop('max_epochs', -1)
-        num_batches_per_epoch = kwargs.pop('max_steps', -1) // num_epochs
-        super(Ranger21, self).__init__(params=params, num_epochs=num_epochs,
-                                     num_batches_per_epoch=num_batches_per_epoch,
-                                     **kwargs)
+# @OPTIMIZERS.register_module()
+# class Ranger21(Ranger21):
+#     def __init__(self, model, **kwargs):
+#         params = model.parameters()
+#         num_epochs = kwargs.pop('max_epochs', -1)
+#         num_batches_per_epoch = kwargs.pop('max_steps', -1) // num_epochs
+#         super(Ranger21, self).__init__(params=params, num_epochs=num_epochs,
+#                                      num_batches_per_epoch=num_batches_per_epoch,
+#                                      **kwargs)
 
 @OPTIMIZERS.register_module()
 class Bert(torch.optim.AdamW):

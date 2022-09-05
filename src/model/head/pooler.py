@@ -6,11 +6,11 @@ from .base import BaseHead
 
 @HEADS.register_module()
 class BasePooler(BaseHead):
-    def __init__(self, pooler_type='mean', **kwargs):
+    def __init__(self, pooler_type='mean', act_cfg=dict(type='Tanh'), **kwargs):
         assert pooler_type in ['cls', 'mean', 'max', 'attention'], 'pooler_name must be in cls, mean, max and attention'
         self.pooler_type = pooler_type
         super(BasePooler, self).__init__(**kwargs)
-        self.activation = nn.Tanh()
+        self.activation = getattr(nn, act_cfg['type'])()
         self.model = nn.Sequential(*[nn.Linear(self.in_channels, self.num_classes),
                                      self.activation])
 
@@ -22,11 +22,22 @@ class BasePooler(BaseHead):
 
     def forward(self, x):
         '''use specific backbone layer output to forward'''
+        if isinstance(x, dict):
+            mask = x.pop('mask', None)
+            x = x.pop('x')
+        else:
+            mask = None
+
         x = x[self.in_index]
         if self.pooler_type == 'cls':
             pooled_output = x[:, 0]
         elif self.pooler_type == 'mean':
-            pooled_output = x.mean(dim=1)
+            if mask is not None:
+                input_mask_expanded = mask.unsqueeze(-1).expand(x.size()).float()
+                pooled_output = torch.sum(x * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1),
+                                                                                          min=1e-9)
+            else:
+                pooled_output = x.mean(dim=1)
         elif self.pooler_type == 'max':
             pooled_output = x.max(dim=1)
         elif self.pooler_type == 'attention':

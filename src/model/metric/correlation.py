@@ -3,7 +3,7 @@ import pytorch_lightning as pl
 from ..builder import METRICS
 @METRICS.register_module()
 class Correlation(pl.LightningModule):
-    def __init__(self, metric_name='correlation', eps=1e-12, detach_target=True):
+    def __init__(self, metric_name='correlation', eps=1e-8, detach_target=True):
         """
         Compute correlation between the output and the target
 
@@ -34,7 +34,7 @@ class Correlation(pl.LightningModule):
 
 @METRICS.register_module()
 class AverageCorrelation(pl.LightningModule):
-    def __init__(self, metric_name='average_correlation', by=None, eps=1e-12, detach_target=True):
+    def __init__(self, metric_name='average_correlation', by=None, eps=1e-8, detach_target=True):
         """
         Compute correlation between the output and the target
 

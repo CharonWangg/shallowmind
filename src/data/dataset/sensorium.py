@@ -9,7 +9,7 @@ from ..pipeline import Compose
 from neuralpredictors.data.datasets import StaticImageSet, FileTreeDataset
 from torch.utils.data.sampler import SubsetRandomSampler
 from neuralpredictors.data.samplers import SubsetSequentialSampler
-from neuralpredictors.data.transforms import NeuroNormalizer
+from neuralpredictors.data.transforms import NeuroNormalizer, ScaleInputs
 
 @DATASETS.register_module()
 class Sensorium(torch.utils.data.Dataset):

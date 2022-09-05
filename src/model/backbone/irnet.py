@@ -315,6 +315,7 @@ class IRNet(nn.Module):
         self.load_state_dict(model.state_dict(), strict=False)
 
     def forward(self, x):
+        x = x['image']
         xs = []
         x = self.conv2d_1a(x)
         xs.append(x)

@@ -29,9 +29,6 @@ def train():
 
     args = parser.parse_args()
 
-    # fix random seed
-    pl.seed_everything(args.seed)
-
     # device setting
     args.accelerator = 'auto'
     # training setting for distributed training
@@ -42,9 +39,12 @@ def train():
         args.sync_batchnorm = True
         args.strategy = 'ddp'
 
-
     # load model and data config settings from config file
     cfg = load_config(args.cfg)
+
+    # fix random seed (seed in config has higher priority )
+    seed = cfg.seed if cfg.get('seed', None) is not None else args.seed
+    pl.seed_everything(seed)
 
     # ignore warning
     if not cfg.get('warning', True):
@@ -77,8 +77,8 @@ def train():
     data_module = DataInterface(cfg.data)
     # set ddp sampler
     if args.devices > 1:
-        if cfg.data.train.get('sampler', None) is None:
-            args.replace_sampler_ddp = False
+        # if cfg.data.train.get('sampler', None) is None:
+        args.replace_sampler_ddp = True
 
     # optimization
     if cfg.optimization.type == 'epoch':
@@ -88,10 +88,16 @@ def train():
     else:
         raise NotImplementedError('You must choose optimziation update step from (epoch/iter)')
 
-    # for models need setting readout layer with dataloader information
-    if cfg.model.pop('need_dataloader', False):
-        data_module.setup(stage='fit')
-        cfg.model.dataloader = data_module.train_dataloader()
+    # for models need setting readout layer with dataloader informatios
+    if cfg.model.get('archs', None) is not None:
+        for arch in cfg.model.archs:
+            if arch.pop('need_dataloader', False):
+                data_module.setup(stage='fit')
+                arch.dataloader = data_module.train_dataloader()
+    else:
+        if cfg.model.pop('need_dataloader', False):
+            data_module.setup(stage='fit')
+            cfg.model.dataloader = data_module.train_dataloader()
 
     if cfg.get('resume_from', None) is None:
         model = ModelInterface(cfg.model, cfg.optimization)
@@ -117,6 +123,14 @@ def train():
     # log
     # callbacks
     callbacks = []
+    # accumulation of gradients
+    if cfg.optimization.get('accumulation_steps', 1) != 1:
+        if isinstance(cfg.optimization.accumulation_steps, int):
+            callbacks.append(plc.GradientAccumulationScheduler(scheduling={0: cfg.optimization.accumulation_steps}))
+        else:
+            # dict of scheduling {epoch: accumulation_steps, ...}
+            callbacks.append(plc.GradientAccumulationScheduler(scheduling=cfg.optimization.accumulation_steps))
+
     # used to control early stopping
     if cfg.log.earlystopping is not None:
         callbacks.append(plc.EarlyStopping(
@@ -135,7 +149,8 @@ def train():
             filename = cfg.log.checkpoint.get('filename', f'exp_name={cfg.log.exp_name}-' + \
                                                         f'cfg={cfg.base_name.strip(".py")}-' + \
                                                         f'bs={cfg.data.train_batch_size}-'+ \
-                                                        f'{{{cfg.log.monitor}:.3f}}')
+                                                        f'seed={seed}-' + \
+                                                        f'{{{cfg.log.monitor}:.4f}}')
             callbacks.append(plc.ModelCheckpoint(
                 monitor=cfg.log.monitor,
                 dirpath=dirpath,

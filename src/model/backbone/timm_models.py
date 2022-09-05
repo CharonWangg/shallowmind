@@ -33,5 +33,6 @@ class TimmModels(pl.LightningModule):
 
 
     def forward(self, x):
+        x = x['image']
         x = self.model(x)
         return x

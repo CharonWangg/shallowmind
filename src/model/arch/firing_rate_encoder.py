@@ -94,6 +94,7 @@ class FiringRateEncoder(pl.LightningModule):
         if dataloader is None:
             raise ValueError('dataloader is required for initializing FiringRateEncoder')
 
+        self.name = 'FiringRateEncoder'
         # ****************************Modified from official code******************************************
         # Obtain the named tuple fields from the first entry of the first dataloader in the dictionary
         in_name, out_name = "images", "responses"

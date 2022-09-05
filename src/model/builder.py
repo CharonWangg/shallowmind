@@ -1,6 +1,7 @@
 from ..utils.config import Registry, build_from_cfg
 
 ARCHS = Registry('arch')
+EMBEDDINGS = Registry('embedding')
 BACKBONES = Registry('backbone')
 NECKS = Registry('neck')
 HEADS = Registry('head')
@@ -13,6 +14,10 @@ METRICS = Registry('metric')
 def build_arch(cfg):
     '''build arch with given config'''
     return build_from_cfg(cfg, ARCHS)
+
+def build_embedding(cfg):
+    '''build embedding with given config'''
+    return build_from_cfg(cfg, EMBEDDINGS)
 
 def build_backbone(cfg):
     '''build backbone with given config'''

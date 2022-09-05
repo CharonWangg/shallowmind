@@ -3,13 +3,15 @@ import pytorch_lightning as pl
 from ..utils import add_prefix
 from ..builder import ARCHS
 from ..builder import build_backbone, build_head
+from ...data.pipeline import Compose
 
 @ARCHS.register_module()
 class BaseEncoderDecoder(pl.LightningModule):
-    def __init__(self, backbone, head, auxiliary_head=None):
+    def __init__(self, backbone, head, auxiliary_head=None, pipeline=None):
         super(BaseEncoderDecoder, self).__init__()
         assert backbone is not None, 'backbone is not defined'
         assert head is not None, 'head is not defined'
+        self.name = 'BaseEncoderDecoder'
         # build backbone
         self.backbone = build_backbone(backbone)
         # build decode head
@@ -28,8 +30,6 @@ class BaseEncoderDecoder(pl.LightningModule):
             self.auxiliary_head = None
 
     def exact_feat(self, x):
-        if isinstance(x, dict):
-            x = x['images']
         x = self.backbone(x)
         return x
 

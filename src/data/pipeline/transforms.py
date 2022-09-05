@@ -7,6 +7,8 @@ from copy import deepcopy
 from albumentations import Compose
 from albumentations.pytorch.transforms import ToTensorV2
 import neuralpredictors.data.transforms as neural_transforms
+import tsaug
+from composer import functional as cf
 from shallowmind.src.data.builder import build_pipeline, PIPELINES
 
 @PIPELINES.register_module()
@@ -31,10 +33,11 @@ class LoadImages(object):
         else:
             if channel_dim != 2:
                 image = image.transpose((1, 2, 0))
-                if image.shape[-1] == 3:
-                    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-                elif image.shape[-1] == 1:
-                    image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+                if self.to_RGB:
+                    if image.shape[-1] == 3:
+                        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                    elif image.shape[-1] == 1:
+                        image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
 
         data["image"] = image
         return data
@@ -46,7 +49,92 @@ class ToTensor:
         self.totensorv2 = ToTensorV2(transpose_mask=transpose_mask,  always_apply=always_apply, p=p)
 
     def __call__(self, data):
-        data['image'] = self.totensorv2(image=data['image'])['image']
+        for key, value in data.items():
+            if key == "image":
+                data['image'] = self.totensorv2(image=data['image'])['image']
+            elif key == "seq":
+                data[key] = torch.tensor(data[key], dtype=torch.float32)
+            else:
+                data[key] = torch.tensor(data[key])
+        return data
+
+@PIPELINES.register_module()
+class CausalWindowCrop:
+    PAD_IDX = -100
+    def __init__(self, num_windows=32, window_size=512, prior_size=12, interval=10, random_start=True, eps=1e-6, p=1.0):
+        self.num_windows = num_windows
+        self.window_size = window_size
+        self.prior_size = prior_size
+        self.interval = interval
+        self.random_start = random_start
+        self.eps = eps
+        self.p = p
+
+    def __call__(self, data):
+        data = deepcopy(data)
+        x = data.pop('seq') # (L, C)
+        feat_dim = x.shape[-1]
+        x = np.diff(x[::self.interval, :], n=1, axis=0)
+        # find spikes and their corresponding causal windows (NW, WL, C)
+        spikes = np.sort(np.argsort(np.abs(x[:, 0]) ** 2)[::-1][:self.num_windows])
+        # remove the zero-spikes
+        spikes = [spike for spike in spikes if x[spike, 0] > self.eps]
+        if not self.random_start:
+            x = [x[(spike - self.prior_size):(spike + self.window_size - self.prior_size), :]
+                  for spike in spikes
+                  if spike + self.window_size - self.prior_size < x.shape[0] and spike - self.prior_size >= 0]
+        else:
+            spikes = [spike - self.prior_size - np.random.randint(0, self.window_size) for spike in spikes]
+            spikes = [spike for spike in spikes if spike + self.window_size < x.shape[0] and spike - self.prior_size >= 0]
+            x = [x[spike:(spike + self.window_size), :] for spike in spikes]
+        if not x:
+            data['seq'] = np.concatenate((np.zeros((1, self.window_size, feat_dim)),
+                                     self.PAD_IDX * np.ones((self.num_windows - 1, self.window_size, feat_dim))), axis=0).astype(np.float32)
+        else:
+            x = np.stack(x, axis=0)[:self.num_windows]
+            data['seq'] = np.concatenate((x, self.PAD_IDX * np.ones((self.num_windows - x.shape[0], self.window_size, feat_dim))), axis=0)
+        data['padding_mask'] = (data['seq'][:, 0, 0] == self.PAD_IDX)
+
+        return data
+
+@PIPELINES.register_module()
+class RandomWindowCrop:
+    PAD_IDX = -100
+    def __init__(self, num_windows=32, window_size=512, prior_size=12, interval=10, random_start=True, eps=1e-6, p=1.0):
+        self.num_windows = num_windows
+        self.window_size = window_size
+        self.prior_size = prior_size
+        self.interval = interval
+        self.random_start = random_start
+        self.eps = eps
+        self.p = p
+
+    def __call__(self, data):
+        data = deepcopy(data)
+        x = data.pop('seq') # (L, C)
+        feat_dim = x.shape[-1]
+        x = torch.diff(x[::self.interval, :], n=1, dim=0)
+        # find spikes and their corresponding causal windows (NW, WL, C)
+        spikes = torch.argsort(torch.abs(x[:, 0]) ** 2, descending=True)[:self.num_windows]
+        # remove the zero-spikes
+        spikes = [spike for spike in spikes if x[spike, 0] > self.eps]
+        if not self.random_start:
+            x = [x[(spike - self.prior_size):(spike + self.window_size - self.prior_size), :]
+                  for spike in spikes
+                  if spike + self.window_size - self.prior_size < x.shape[0] and spike - self.prior_size >= 0]
+        else:
+            spikes = torch.where(x[:, 0] == 1)[0].tolist() + torch.where(x[:, 0] == -1)[0].tolist()
+            spikes = [spike - self.prior_size - np.random.randint(0, self.window_size) for spike in spikes]
+            spikes = [spike for spike in spikes if spike + self.window_size < x.shape[0] and spike - self.prior_size >= 0]
+            x = [x[spike:(spike + self.window_size), :] for spike in spikes]
+        if not x:
+            data['seq'] = torch.cat((torch.zeros((1, self.window_size, feat_dim)),
+                                     self.PAD_IDX * torch.ones((self.num_windows - 1, self.window_size, feat_dim))), dim=0).to(torch.float32)
+        else:
+            x = torch.stack(x, dim=0)[:self.num_windows]
+            data['seq'] = torch.cat((x, self.PAD_IDX * torch.ones((self.num_windows - x.shape[0], self.window_size, feat_dim))), dim=0)
+        data['padding_mask'] = (data['seq'][:, 0, 0] == self.PAD_IDX)
+
         return data
 
 
@@ -141,9 +229,6 @@ class AddExtraFeatureAsChannels:
         data['image'] = orig_feature.astype(np.float32)
 
         return data
-
-
-
 
 @PIPELINES.register_module()
 class NeuronSelection:
@@ -310,13 +395,130 @@ class Albumentations:
 
 
     def __call__(self, results):
-        # dict to albumentations format, temporarily no segmentation task, so only image aug (without mask)
         res = copy.deepcopy(results)
         try:
-            aug_res = self.aug(image = res['image'])
+            kwargs = {}
+            if res.get('mask', None) is not None:
+                kwargs['mask'] = res['mask']
+            if res.get('bbox', None) is not None:
+                kwargs['bbox'] = res['bbox']
+            if res.get('keypoints', None) is not None:
+                kwargs['keypoints'] = res['keypoints']
+            aug_res = self.aug(image=res['image'], **kwargs)
+            # get image, mask, bbox, keypoint from aug_res
             res['image'] = aug_res['image']
+            if aug_res.get('mask', None) is not None:
+                res['mask'] = aug_res['mask']
+            if aug_res.get('bbox', None) is not None:
+                res['bbox'] = aug_res['bbox']
+            if aug_res.get('keypoints', None) is not None:
+                res['keypoint'] = aug_res['keypoint']
             return res
         except Exception as e:
             print(e)
             return res
+
+
+@PIPELINES.register_module()
+class TsAug:
+    '''Time series augmentation'''
+
+    def __init__(self, transforms):
+        if tsaug is None:
+            raise RuntimeError('tsaug is not installed')
+
+        # Args will be modified later, copying it will be safer
+        transforms = copy.deepcopy(transforms)
+        self.transforms = transforms
+
+        self.aug = []
+        for t in self.transforms:
+            self.aug.append(self.tsaug_builder(t))
+        # for tsaug pipeline, use + instead of Compose
+        self.aug = tsaug._augmenter.base._AugmenterPipe(self.aug)
+
+    def tsaug_builder(self, cfg):
+        """Import a module from tsaug.
+
+        Extra parameters: frequency, .
+
+        Args:
+            cfg (dict): Config dict. It should at least contain the key "type".
+
+        Returns:
+            obj: The constructed object.
+        """
+
+        assert isinstance(cfg, dict) and 'type' in cfg
+        args = cfg.copy()
+
+        obj_type = args.pop('type')
+        frequency = args.pop('frequency', 1)
+        probability = args.pop('p', 1.0)
+        if isinstance(obj_type, str):
+            if tsaug is None:
+                raise RuntimeError('tsaug is not installed')
+            obj_cls = getattr(tsaug, obj_type)
+        else:
+            raise TypeError(
+                f'type must be a str, but got {type(obj_type)}')
+
+        if 'transforms' in args:
+            args['transforms'] = [
+                self.tsaug_builder(transform)
+                for transform in args['transforms']
+            ]
+
+        return (obj_cls(**args) * frequency ) @ probability
+
+
+    def __call__(self, results):
+        res = copy.deepcopy(results)
+        try:
+            mask = res.get('mask', None)
+            res['seq'] = self.aug.augment(res['seq'], mask)
+            return res
+        except Exception as e:
+            print(e)
+            return res
+
+@PIPELINES.register_module()
+class Composer:
+    '''Composer library for model pipeline'''
+
+    def __init__(self, transforms):
+        # if cf is None:
+        #     raise RuntimeError('mosaicml is not installed')
+
+        # Args will be modified later, copying it will be safer
+        transforms = copy.deepcopy(transforms)
+        self.transforms = transforms
+
+    def algorithm_builder(self, cfg):
+        """Import a module from composer.functional.
+
+        Args:
+            cfg (dict): Config dict. It should at least contain the key "type".
+
+        Returns:
+            obj: The constructed object.
+        """
+
+        assert isinstance(cfg, dict) and 'type' in cfg
+        args = cfg.copy()
+
+        func_type = 'apply_' + args.pop('type').lower()
+        assert isinstance(func_type, str), f'type must be a str, but got {type(func_type)}'
+        func = getattr(cf, func_type)
+
+        return func, deepcopy(args)
+
+    def __call__(self, results):
+        res = copy.deepcopy(results)
+
+        for t in self.transforms:
+            func, kwargs = self.algorithm_builder(t)
+            results = func(results, kwargs)
+
+        return results
 

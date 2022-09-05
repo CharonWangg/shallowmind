@@ -29,7 +29,7 @@ class PoissonLoss(pl.LightningModule):
             elif self.reduction == 'sum':
                 loss = loss.sum(dim=0)
         if self.scale:
-            loss = loss * (4500 / output.shape[0]) ** 0.5
+            loss = loss * (6955 / output.shape[0]) ** 0.5
         return loss
 
 @LOSSES.register_module()

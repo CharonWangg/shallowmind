@@ -57,6 +57,8 @@ class BaseHead(pl.LightningModule):
 
     def forward(self, x, **kwargs):
         '''use specific backbone layer output to forward'''
+        if isinstance(x, dict):
+            x = x.pop('x')
         return self.model(x[self.in_index].view(x[self.in_index].shape[0], -1), **kwargs)
 
     def forward_train(self, input, label, **kwargs):

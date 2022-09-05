@@ -11,6 +11,8 @@ class NeuralPredictors(pl.LightningModule):
         self.model = getattr(cores, model_name)(**kwargs)
 
     def forward(self, x):
+        if isinstance(x, dict):
+            x = x['image']
         x = self.model(x)
         if isinstance(x, list) or isinstance(x, tuple):
             return x

@@ -3,20 +3,19 @@ import cv2
 import torch
 import numpy as np
 import pandas as pd
+import pickle
 from ..builder import DATASETS, build_sampler
 from ..pipeline import Compose
 from neuralpredictors.data.datasets import StaticImageSet, FileTreeDataset
 
 @DATASETS.register_module()
-class NMOS6502(torch.utils.data.Dataset):
-    def __init__(self, data_root=None, split=None, interval=10, sampler=None, pipeline=None):
+class WindowNMOS6502(torch.utils.data.Dataset):
+    def __init__(self, data_root=None, split=None, sampler=None, pipeline=None):
         # Set all input args as attributes
         self.__dict__.update(locals())
         self.check_files()
-        self.subject = data_root.split('/')[-1].strip('.npy')
         self.pipeline = Compose(pipeline)
         self.dataset = self.check_files()
-        self.interval = interval
         if sampler is not None:
             self.data_sampler = getattr(torch.utils.data, sampler)(self)
         else:
@@ -26,10 +25,8 @@ class NMOS6502(torch.utils.data.Dataset):
         if self.data_root is None:
             raise Exception("Invalid dataset path")
 
-        # Load data
-        self.time_series_df = pd.read_csv(self.split)
-        self.ts_df = pd.read_csv('/home/charon/project/nmos_inference/raw_data/transistors.csv')
-        self.seqs = np.load(self.data_root, mmap_mode='r')
+        # Load window data pkl
+        self.ts_pkl = pickle.load(open(self.split, "rb"))
 
     def feature_mining(self, seq):
         # add shift to the sequence
@@ -54,17 +51,12 @@ class NMOS6502(torch.utils.data.Dataset):
         return df.fillna(0).to_numpy()
 
     def __getitem__(self, idx):
-        seq = {'seq': np.stack([self.seqs[int(self.time_series_df.iloc[idx]["transistor_1"])],
-                                self.seqs[int(self.time_series_df.iloc[idx]["transistor_2"])]],
-                               axis=-1).astype(np.float32)[::self.interval, :]}
-
-        seq = self.pipeline(seq)
+        seq = {'seq': np.array(self.ts_pkl[idx]['sample'], dtype=np.float32)}
         # seq = self.feature_mining(seq)
 
-        label = torch.tensor(self.time_series_df.iloc[idx]["label"], dtype=torch.int64)
+        label = torch.tensor(self.ts_pkl[idx]["label"], dtype=torch.int64)
 
-
-        return seq, label
+        return self.pipeline(seq), label
 
     def __len__(self):
-        return len(self.time_series_df)
+        return len(self.ts_pkl)

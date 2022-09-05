@@ -2,6 +2,7 @@ from copy import deepcopy
 import torch
 import pytorch_lightning as pl
 from shallowmind.src.model.builder import build_arch, build_optimizer, build_scheduler, build_metric
+from shallowmind.src.data.pipeline import Compose
 
 
 class ModelInterface(pl.LightningModule):
@@ -13,7 +14,12 @@ class ModelInterface(pl.LightningModule):
         self.configure_metrics()
         self.configure_meta_keys()
         self.model.pop('evaluation')
+        pipeline = self.model.pop('pipeline', None)
+        if pipeline is not None:
+            pipeline = Compose(pipeline)
         self.model = build_arch(self.model)
+        if pipeline is not None:
+            self.model = pipeline(self.model)
         if self.hparams.model.get('dataloader', None) is not None:
             self.hparams.model.pop('dataloader')
 
@@ -119,7 +125,7 @@ class ModelInterface(pl.LightningModule):
         optim_cfg = deepcopy(self.optimization.optimizer)
         optim_cfg.model = self.model
         # New optimizer Ranger21
-        optim_cfg.update({'max_epochs': max_epochs, 'max_steps': max_steps}) if optim_cfg.type == 'Ranger21' else None
+        # optim_cfg.update({'max_epochs': max_epochs, 'max_steps': max_steps}) if optim_cfg.type == 'Ranger21' else None
         optimizer = build_optimizer(optim_cfg)
 
         # scheduler
@@ -128,6 +134,7 @@ class ModelInterface(pl.LightningModule):
             scl_cfg.max_epochs = max_epochs
             scl_cfg.max_steps = max_steps
             scheduler = {"interval": scl_cfg.pop("interval", "step"),
+                         'frequency': scl_cfg.pop("frequency", 1),
                          "monitor": scl_cfg.pop("monitor", "train_loss")}
 
             # warmup

@@ -3,16 +3,29 @@ import torch.nn as nn
 from torch.nn.utils import weight_norm
 import torch.nn.functional as F
 import pytorch_lightning as pl
-from ..builder import BACKBONES
+from ..builder import BACKBONES, build_embedding
 
 @BACKBONES.register_module()
 class TCN(pl.LightningModule):
-    def __init__(self, input_size, hidden_size, kernel_size=2, dropout=0.2):
+    def __init__(self, in_channels=None, hidden_size=None, kernel_size=2, dropout=0.2, embedding=None):
         super().__init__()
         self.__dict__.update(locals())
-        self.encoder = TemporalConvNet(input_size, hidden_size, kernel_size=kernel_size, dropout=dropout)
+
+        if embedding is not None:
+            self.embedding = build_embedding(embedding)
+            if in_channels is None:
+                in_channels = self.embedding.embedding_size
+        else:
+            self.embedding = None
+
+        self.encoder = TemporalConvNet(in_channels, hidden_size, kernel_size=kernel_size, dropout=dropout)
 
     def forward(self, x):
+        if isinstance(x, dict):
+            x = x['seq']
+        # high level projection:
+        if self.embedding is not None:
+            x = self.embedding(x)
         x = self.encoder(x.permute(0, 2, 1)).permute(0, 2, 1)  # (batch_size, seq_len, hidden_size)
         return [x]
 
@@ -46,13 +59,13 @@ class TemporalBlock(nn.Module):
 
 
 class TemporalConvNet(nn.Module):
-    def __init__(self, num_inputs, num_channels, kernel_size=2, dropout=0.2):
+    def __init__(self, in_channels, num_channels, kernel_size=2, dropout=0.2):
         super(TemporalConvNet, self).__init__()
         layers = []
         num_levels = len(num_channels)
         for i in range(num_levels):
             dilation_size = 2 ** i
-            in_channels = num_inputs if i == 0 else num_channels[i - 1]
+            in_channels = in_channels if i == 0 else num_channels[i - 1]
             out_channels = num_channels[i]
             layers += [TemporalBlock(in_channels, out_channels, kernel_size, stride=1, dilation=dilation_size,
                                      padding=(kernel_size - 1) * dilation_size, dropout=dropout)]
