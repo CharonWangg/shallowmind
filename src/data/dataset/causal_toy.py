@@ -5,7 +5,7 @@ from ..builder import DATASETS, build_sampler
 from ..pipeline import Compose
 
 @DATASETS.register_module()
-class NMOS6502(torch.utils.data.Dataset):
+class CausalToy(torch.utils.data.Dataset):
     def __init__(self, data_root=None, split=None, interval=10, sampler=None, pipeline=None):
         # Set all input args as attributes
         self.__dict__.update(locals())
@@ -59,7 +59,6 @@ class NMOS6502(torch.utils.data.Dataset):
         # seq = self.feature_mining(seq)
 
         label = torch.tensor(self.time_series_df.iloc[idx]["label"], dtype=torch.int64)
-
 
         return seq, label
 
