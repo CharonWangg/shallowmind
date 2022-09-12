@@ -30,6 +30,7 @@ ENV/
 
 # OSX dir files
 .DS_Store
+src/.DS_Store
 
 # Sublime Text settings
 *.sublime-workspace
