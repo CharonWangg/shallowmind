@@ -4,7 +4,6 @@ import torch
 import torchvision
 import pytorch_lightning as pl
 
-
 class SaveIntermediateHook:
     """This is used to get intermediate values in forward() pass.
     """

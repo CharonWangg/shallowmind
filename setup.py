@@ -2,14 +2,15 @@ from setuptools import setup, find_packages
 
 setup(
     name="shallowmind",
-    version="1.0",
+    version="0.0.1",
     author="charonwangg",
     author_email="charonwangg@Gmail.com",
     description="A Highly-Distangible Config Based Deep Learning Framework",
 
     # 项目主页
-    url="http://iswbm.com/",
+    url="https://www.charonwangg.com/project/shallowmind/",
 
-    # 你要安装的包，通过 setuptools.find_packages 找到当前目录下有哪些包
-    packages=find_packages()
+    python_requires='>=3.9',
+    packages=find_packages(),
+    install_requires=open('requirements.txt').read().splitlines(),
 )
