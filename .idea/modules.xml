@@ -2,7 +2,6 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/../sensorium/.idea/sensorium.iml" filepath="$PROJECT_DIR$/../sensorium/.idea/sensorium.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/shallowmind.iml" filepath="$PROJECT_DIR$/.idea/shallowmind.iml" />
     </modules>
   </component>
