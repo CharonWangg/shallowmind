@@ -1,6 +1,7 @@
 from .sensorium import Sensorium
 from .nmos6502 import NMOS6502
-from .window_nmos6502 import WindowNMOS6502
 from .netsim import NetSim
+from .torchvision import TorchVision
+from .lingam import LiNGAM
 
-__all__ = ['Sensorium', 'NMOS6502', 'WindowNMOS6502', 'NetSim']
+__all__ = ['Sensorium', 'NMOS6502', 'NetSim', 'TorchVision', 'LiNGAM']

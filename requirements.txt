@@ -20,3 +20,4 @@ tsaug==0.2.1
 yapf>=0.31.0
 neuralpredictors==0.3.0
 comet-ml==3.31.9
+mosaicml==0.9.0
