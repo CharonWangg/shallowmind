@@ -9,10 +9,9 @@ class NMOS6502(torch.utils.data.Dataset):
     def __init__(self, data_root=None, split=None, interval=10, sampler=None, pipeline=None):
         # Set all input args as attributes
         self.__dict__.update(locals())
-        self.check_files()
         self.subject = data_root.split('/')[-1].strip('.npy')
         self.pipeline = Compose(pipeline)
-        self.dataset = self.check_files()
+        self.check_files()
         self.interval = interval
         if sampler is not None:
             self.data_sampler = getattr(torch.utils.data, sampler)(self)
