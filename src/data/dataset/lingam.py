@@ -28,7 +28,6 @@ class LiNGAM(torch.utils.data.Dataset):
         else:
             self.xss = np.load(os.path.join(data_root, 'xss.npy'), mmap_mode='r')
             self.adjs = np.load(os.path.join(data_root, 'adjs.npy'), mmap_mode='r')
-
         if sampler is not None:
             self.data_sampler = getattr(torch.utils.data, sampler)(self)
         else:
