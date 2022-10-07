@@ -10,8 +10,11 @@ from shallowmind.src.model import ModelInterface
 from shallowmind.src.data import DataInterface
 from argparse import ArgumentParser
 from shallowmind.src.utils import load_config
+from shallowmind.src.model.utils import OptimizerResumeHook
+from pytorch_lightning.callbacks import RichProgressBar
 
 torch.multiprocessing.set_sharing_strategy('file_system')
+
 
 def train():
     parser = ArgumentParser()
@@ -62,7 +65,7 @@ def train():
     # /optimization(optimizer, scheduler, epoch/iter...) -> ModelInterface/
     # log(logger, checkpoint, work_dir) -> Trainer /other
 
-   # other setting
+    # other setting
     # other setting
     if cfg.get('cudnn_benchmark', True):
         args.benchmark = True
@@ -123,6 +126,9 @@ def train():
     # log
     # callbacks
     callbacks = []
+    if cfg.get('resume_from', None) is not None:
+        callbacks.append(OptimizerResumeHook())
+
     # accumulation of gradients
     if cfg.optimization.get('accumulation_steps', 1) != 1:
         if isinstance(cfg.optimization.accumulation_steps, int):
@@ -147,10 +153,10 @@ def train():
         if cfg.log.checkpoint.type == 'ModelCheckpoint':
             dirpath = cfg.log.checkpoint.get('dirpath', os.path.join(cfg.log.work_dir, cfg.log.exp_name, 'ckpts'))
             filename = cfg.log.checkpoint.get('filename', f'exp_name={cfg.log.exp_name}-' + \
-                                                        f'cfg={cfg.base_name.strip(".py")}-' + \
-                                                        f'bs={cfg.data.train_batch_size}-'+ \
-                                                        f'seed={seed}-' + \
-                                                        f'{{{cfg.log.monitor}:.4f}}')
+                                              f'cfg={cfg.base_name.strip(".py")}-' + \
+                                              f'bs={cfg.data.train_batch_size}-' + \
+                                              f'seed={seed}-' + \
+                                              f'{{{cfg.log.monitor}:.4f}}')
             callbacks.append(plc.ModelCheckpoint(
                 monitor=cfg.log.monitor,
                 dirpath=dirpath,
@@ -191,12 +197,18 @@ def train():
                 loggers.append(TensorBoardLogger(save_dir=save_dir))
         args.logger = loggers
 
+    # load rich progress bar if comet logger is not used
+    if not (cfg.log.logger is not None and any(['comet' in logger.type for logger in cfg.log.logger])):
+        args.callbacks.append(RichProgressBar())
+
+
     # load trainer
     trainer = Trainer.from_argparse_args(args)
 
     trainer.fit(model, data_module, ckpt_path=cfg.get('resume_from', None))
 
     trainer.test(model, data_module)
+
 
 if __name__ == '__main__':
     train()
