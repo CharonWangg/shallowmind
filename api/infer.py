@@ -1,14 +1,17 @@
 import os
+import sys
 import ast
 import torch
 import pytorch_lightning as pl
 from pytorch_lightning import Trainer
-from pytorch_lightning.loggers import TensorBoardLogger, CometLogger
-import pytorch_lightning.callbacks as plc
+# ugly hack to enable configs inside the package to be run
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
 from shallowmind.src.model import ModelInterface
 from shallowmind.src.data import DataInterface
 from argparse import ArgumentParser
 from shallowmind.src.utils import load_config
+
 
 torch.multiprocessing.set_sharing_strategy('file_system')
 

@@ -5,6 +5,7 @@ from ...builder import EMBEDDINGS
 from einops.layers.torch import Rearrange, Reduce
 from einops import rearrange, reduce, repeat
 
+
 @EMBEDDINGS.register_module()
 class BaseEmbedding(pl.LightningModule):
     '''base class for all basic embedding layers in the pytorch'''

@@ -20,6 +20,10 @@ class LoadImages(object):
 
     def __call__(self, data):
         image = data["image"]
+        if isinstance(image, str):
+            image = np.asarray(cv2.imread(image, cv2.IMREAD_COLOR))
+        else:
+            image = np.asarray(image)
         # get the channel dimension
         channel_dim = np.argmin(image.shape)
         if self.channels_first:

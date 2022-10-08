@@ -1,11 +1,15 @@
 import os
 import ast
+import sys
 import torch
 import warnings
 import pytorch_lightning as pl
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger, CometLogger
 import pytorch_lightning.callbacks as plc
+# ugly hack to enable configs inside the package to be run
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
 from shallowmind.src.model import ModelInterface
 from shallowmind.src.data import DataInterface
 from argparse import ArgumentParser
@@ -37,6 +41,8 @@ def train():
     # training setting for distributed training
     # args.gpu = '[0, 1, 2, 3]'
     args.gpus = ast.literal_eval(args.gpu_ids)
+    if isinstance(args.gpus, int):
+        args.gpus = [args.gpus]
     args.devices = len(args.gpus)
     if args.devices > 1:
         args.sync_batchnorm = True

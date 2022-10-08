@@ -7,7 +7,7 @@ from ast import literal_eval
 @BACKBONES.register_module()
 class TimmModels(pl.LightningModule):
     '''call the backbones in TIMM library'''
-    def __init__(self, model_name, features_only=True, pretrained=True, pooling=True,
+    def __init__(self, model_name, features_only=True, pretrained=True,
                  checkpoint_path='', in_channels=3, num_classes=1000, **kwargs):
         super(TimmModels, self).__init__()
         # TODO: add support for switching to not default normalization

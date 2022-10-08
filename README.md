@@ -36,3 +36,15 @@ your special one.
 )
 
 Will expand it with my own projects (Next probably Huggingface series?), and welcome to contribute your model/dataset!
+
+---------------------------------------------------------------------------
+### Installation
+python >= 3.9
+```
+$ cd shallowmind && pip install -e .
+```
+### Usage
+Demo image classification task on CIFAR10 with the ResNet50 backbone from Timm Models
+```
+$ cd shallowmind && python api/train.py --config configs/image_classification_example.py
+```
