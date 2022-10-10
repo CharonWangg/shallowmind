@@ -16,7 +16,7 @@ class CIEncoder(BaseEncoderDecoder):
                                                         # nn.LayerNorm(4),
                                                         Rearrange('b m n -> b n m'),
                                                         nn.BatchNorm1d(4),
-                                                        nn.Conv1d(4, 64, kernel_size=5, stride=5),
+                                                        nn.Conv1d(4, 32, kernel_size=10, stride=10),
                                                         Rearrange('b n m -> b m n'),
                                                         )})
 
@@ -39,16 +39,12 @@ class CIEncoder(BaseEncoderDecoder):
         #                                 nn.Linear(256, 256),
         #                                 nn.GELU(),
         #                                 ])
-        backbone.pop('embedding')
         self.backbone = build_backbone(backbone)
         self.backbone.model.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=1, padding=1)
 
     def exact_feat(self, x):
         if isinstance(x, dict):
             x = x['seq']
-        # if x.dim() == 3:
-        #     # (n_batch, mini_batch_size, n_variables) -> (n_batch, 1, mini_batch_size, n_variables): for ImageEncoder
-        #     x = repeat(x, 'b h w  -> b c h w ', c=3)
         x = self.embedding['variable_wise'](x).squeeze()
         x = repeat(x, 'b h w  -> b c h w ', c=1)
         return self.backbone(x)
