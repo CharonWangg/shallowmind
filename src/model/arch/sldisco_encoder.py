@@ -22,11 +22,13 @@ class SLDiscoEncoder(pl.LightningModule):
         assert self.input_length is not None, 'input_length is not defined'
         # column-wise, row-wise, entry-wise, local spatial
         self.backbone = nn.ModuleDict({'column': nn.Sequential(*[nn.Conv2d(1, 2**5, (self.input_length, 1)),
-                                                                 Reduce('b c h w -> b c (repeat h) w', reduction='repeat',
+                                                                 Reduce('b c h w -> b c (repeat h) w',
+                                                                        reduction='repeat',
                                                                         repeat=self.input_length),
                                                                  nn.ReLU()]),
                                        'row': nn.Sequential(*[nn.Conv2d(1, 2**5, (1, self.input_length)),
-                                                              Reduce('b c h w -> b c h (repeat w)', reduction='repeat',
+                                                              Reduce('b c h w -> b c h (repeat w)',
+                                                                     reduction='repeat',
                                                                      repeat=self.input_length),
                                                               nn.ReLU()]),
                                        'entry': nn.Sequential(*[nn.Conv2d(1, 2**5, 1),

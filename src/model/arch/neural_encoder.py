@@ -21,10 +21,7 @@ class NeuralEncoder(BaseEncoderDecoder):
         else:
             self.name = 'NeuralEncoder2D'
 
-
     def exact_feat(self, x):
-        if isinstance(x, dict):
-            x = x['seq']
         if x.dim() == 4:
             x = repeat(x, 'b h w s -> b c h w s', c=3)
         # extract the feature for different subject

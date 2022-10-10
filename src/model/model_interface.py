@@ -146,10 +146,7 @@ class ModelInterface(pl.LightningModule):
                 warmup_cfg.period = int(period * max_steps) if scheduler.get('"interval"', 'step') == 'step' else int(period * max_epochs)
                 warmup_cfg.optimizer = optimizer
                 self.warmup_scheduler = build_scheduler(warmup_cfg)
-
-
             scl_cfg.optimizer = optimizer
-
             scheduler.update({"scheduler": build_scheduler(scl_cfg)})
             return {"optimizer": optimizer, "lr_scheduler": scheduler}
         else:

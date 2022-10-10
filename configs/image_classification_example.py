@@ -11,14 +11,15 @@ model = dict(
     backbone=dict(
         type='TimmModels',
         model_name='resnet50',
-        features_only=True,
+        features_only=False,
+        remove_fc=True,
         pretrained=False
     ),
     # Linear Head for classification
     head=dict(
         type='BaseHead',
         in_index=-1,
-        dropout=0.3,
+        dropout=0.0,
         num_classes=num_classes,
         channels=None,
         losses=loss
@@ -36,14 +37,18 @@ dataset_name = 'CIFAR10'
 
 # training data preprocess pipeline
 train_pipeline = [dict(type='LoadImages'),
-                  dict(type='Albumentations', transforms=[dict(type='HorizontalFlip', p=0.5),
+                  dict(type='Albumentations', transforms=[
+                                                          dict(type='PadIfNeeded', min_height=40, min_width=40, p=1.0),
                                                           dict(type='RandomCrop', height=32, width=32, p=1.0),
-                                                          dict(type='Normalize', mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225], p=1.0)]),
+                                                          dict(type='HorizontalFlip', p=0.5),
+                                                          dict(type='Normalize', mean=[0.4914, 0.4822, 0.4465],
+                                                               std=[0.2023, 0.1994, 0.2010], p=1.0)]),
                   dict(type='ToTensor')]
 
 # validation data preprocess pipeline
 test_pipeline = [dict(type='LoadImages'),
-                 dict(type='Albumentations', transforms=[dict(type='Normalize', mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225], p=1.0)]),
+                 dict(type='Albumentations', transforms=[dict(type='Normalize', mean=[0.4914, 0.4822, 0.4465],
+                                                              std=[0.2023, 0.1994, 0.2010], p=1.0)]),
                  dict(type='ToTensor')]
 
 data = dict(
@@ -98,7 +103,7 @@ log = dict(
     earlystopping=dict(
             mode='max',
             strict=False,
-            patience=20,
+            patience=160,
             min_delta=0.0001,
             check_finite=True,
             verbose=True
@@ -118,10 +123,10 @@ optimization = dict(
     # total running units
     max_iters=100,
     # optimizer
-    optimizer=dict(type='SGD', lr=1e-1, weight_decay=0.0001, momentum=0.9),
+    optimizer=dict(type='SGD', lr=1e-1, weight_decay=0.0005, momentum=0.9),
     # learning rate scheduler and warmup
     scheduler=dict(type='OneCycle',
-                   max_lr=1e-1,
+                   max_lr=1.2e-1,
                    interval='step',
                    # warmup=dict(type='LinearWarmup', period=0.1)
                    )

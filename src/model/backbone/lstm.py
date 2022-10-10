@@ -23,7 +23,8 @@ class LSTM(pl.LightningModule):
 
     def forward(self, x):
         if isinstance(x, dict):
-            x = x['seq']
+            assert 'image' or 'seq' in x.keys(), 'input must be a dict with key "image" or "seq"'
+            x = x['image'] if 'image' in x.keys() else x['seq']
         # high level projection:
         if self.embedding is not None:
             x = self.embedding(x)

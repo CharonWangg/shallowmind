@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader
 from shallowmind.src.data.builder import build_dataset, DATASETS
 from shallowmind.src.data.utils import MaxCycleLoader
 
+
 class DataInterface(pl.LightningDataModule):
 
     def __init__(self, data):
@@ -47,7 +48,7 @@ class DataInterface(pl.LightningDataModule):
 
     def train_dataloader(self):
         if isinstance(self.trainset, list):
-            dataloaders =  {trainset.subject:
+            dataloaders = {trainset.subject:
                         DataLoader(trainset, batch_size=self.data_cfg.train_batch_size, sampler=trainset.data_sampler,
                                    num_workers=self.data_cfg.num_workers) for trainset in self.trainset}
             return MaxCycleLoader(dataloaders)
@@ -57,7 +58,7 @@ class DataInterface(pl.LightningDataModule):
 
     def val_dataloader(self):
         if isinstance(self.valset, list):
-            dataloaders =  {valset.subject:
+            dataloaders = {valset.subject:
                         DataLoader(valset, batch_size=self.data_cfg.val_batch_size, sampler=valset.data_sampler,
                                    num_workers=self.data_cfg.num_workers, shuffle=False) for valset in self.valset}
             return MaxCycleLoader(dataloaders)
@@ -67,7 +68,7 @@ class DataInterface(pl.LightningDataModule):
 
     def test_dataloader(self):
         if isinstance(self.testset, list):
-            dataloaders =  {testset.subject:
+            dataloaders = {testset.subject:
                         DataLoader(testset, batch_size=self.data_cfg.test_batch_size, sampler=testset.data_sampler,
                                    num_workers=self.data_cfg.num_workers, shuffle=False) for testset in self.testset}
             return MaxCycleLoader(dataloaders)

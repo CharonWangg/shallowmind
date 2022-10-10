@@ -12,7 +12,8 @@ class NeuralPredictors(pl.LightningModule):
 
     def forward(self, x):
         if isinstance(x, dict):
-            x = x['image']
+            assert 'image' or 'seq' in x.keys(), 'input must be a dict with key "image" or "seq"'
+            x = x['image'] if 'image' in x.keys() else x['seq']
         x = self.model(x)
         if isinstance(x, list) or isinstance(x, tuple):
             return x

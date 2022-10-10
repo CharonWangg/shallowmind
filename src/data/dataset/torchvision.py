@@ -4,6 +4,7 @@ from ..builder import DATASETS, build_sampler
 from ..pipeline import Compose
 import torchvision
 
+
 @DATASETS.register_module()
 class TorchVision(torch.utils.data.Dataset):
     def __init__(self, dataset_name, data_root='.cache/', download=True, sampler=None, pipeline=None, **kwargs):

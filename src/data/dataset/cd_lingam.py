@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 
 @DATASETS.register_module()
-class AdjLiNGAM(torch.utils.data.Dataset):
+class CDLiNGAM(torch.utils.data.Dataset):
     def __init__(self, data_root='.cache', online=True, n_samples=5000, time_steps=10,
                       adj_cfg=dict(markov_class=False, n_nodes=10, density=0.2, low=0.5, high=2.0, allow_negative=True),
                       noise_cfg=dict(gaussian=True, scale=1.0, permutate=True),

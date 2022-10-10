@@ -40,10 +40,9 @@ class OneCycle(torch.optim.lr_scheduler.OneCycleLR):
     def __init__(self, optimizer, max_lr=0.1, max_steps=-1, max_epochs=-1, pct_start=0.3, anneal_strategy='cos',
                        cycle_momentum=True, base_momentum=0.85, max_momentum=0.95, div_factor=25., final_div_factor=1e4,
                        three_phase=False, last_epoch=-1, verbose=False):
-        steps_per_epoch = max_steps // max_epochs + 1
         super(OneCycle, self).__init__(optimizer=optimizer, max_lr=max_lr,
-                                       total_steps=max_steps, steps_per_epoch=steps_per_epoch, epochs=max_epochs,
-                                       pct_start = pct_start, anneal_strategy = anneal_strategy,
+                                       total_steps=max_steps, epochs=max_epochs,
+                                       pct_start=pct_start, anneal_strategy=anneal_strategy,
                                        cycle_momentum=cycle_momentum, base_momentum=base_momentum, max_momentum=max_momentum,
                                        div_factor=div_factor, final_div_factor=final_div_factor,
                                        three_phase=three_phase, last_epoch=last_epoch, verbose=verbose)

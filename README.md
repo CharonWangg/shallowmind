@@ -48,3 +48,5 @@ Demo image classification task on CIFAR10 with the ResNet50 backbone from Timm M
 ```
 $ cd shallowmind && python api/train.py --config configs/image_classification_example.py
 ```
+### Example
+* [ResNet50 on CIFAR10](configs/image_classification_example.py) 94.11% Top1 Acc

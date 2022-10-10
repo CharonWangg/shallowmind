@@ -8,21 +8,22 @@ from albumentations import Compose
 from albumentations.pytorch.transforms import ToTensorV2
 import neuralpredictors.data.transforms as neural_transforms
 import tsaug
+import torchvision
 from composer import functional as cf
 from shallowmind.src.data.builder import build_pipeline, PIPELINES
 
+
 @PIPELINES.register_module()
 class LoadImages(object):
-    def __init__(self, channels_first=False, to_RGB=True, **kwargs):
+    def __init__(self, as_array=True, channels_first=False, to_RGB=True, **kwargs):
         self.channels_first = channels_first
+        self.as_array = as_array
         self.to_RGB = to_RGB
         self.kwargs = kwargs
 
     def __call__(self, data):
         image = data["image"]
-        if isinstance(image, str):
-            image = np.asarray(cv2.imread(image, cv2.IMREAD_COLOR))
-        else:
+        if self.as_array:
             image = np.asarray(image)
         # get the channel dimension
         channel_dim = np.argmin(image.shape)
@@ -526,3 +527,61 @@ class Composer:
 
         return results
 
+@PIPELINES.register_module()
+class TorchVision:
+    '''Torchvision library for image pipeline'''
+    def __init__(self, transforms):
+        if torchvision is None:
+            raise RuntimeError('torchvision is not installed')
+
+        # Args will be modified later, copying it will be safer
+        transforms = copy.deepcopy(transforms)
+        self.transforms = transforms
+
+        self.aug = []
+        for t in self.transforms:
+            self.aug.append(self.torchvision_builder(t))
+        self.aug = torchvision.transforms.Compose(self.aug)
+
+    def torchvision_builder(self, cfg):
+        """Import a module from torchvision.
+
+        It inherits some of :func:`build_from_cfg` logic.
+
+        Args:
+            cfg (dict): Config dict. It should at least contain the key "type".
+
+        Returns:
+            obj: The constructed object.
+        """
+
+        assert isinstance(cfg, dict) and 'type' in cfg
+        args = cfg.copy()
+
+        obj_type = args.pop('type')
+        if isinstance(obj_type, str):
+            if torchvision is None:
+                raise RuntimeError('torchvision is not installed')
+            obj_cls = getattr(torchvision.transforms, obj_type)
+        else:
+            raise TypeError(
+                f'type must be a str, but got {type(obj_type)}')
+
+        if 'transforms' in args:
+            args['transforms'] = [
+                self.torchvision_builder(transform)
+                for transform in args['transforms']
+            ]
+
+        return obj_cls(**args)
+
+    def __call__(self, results):
+        res = copy.deepcopy(results)
+        try:
+            aug_res = self.aug(res['image'])
+            # get image, mask, bbox, keypoint from aug_res
+            res['image'] = aug_res['image']
+            return res
+        except Exception as e:
+            print(e)
+            return res
