@@ -1,5 +1,4 @@
 # ShallowMind
-### A general self-use ANN framework inspired by MMSegmentation
 ![Shallow Mind](misc/featured.png)
 ---------------------------------------------------------------------------
 Inspired by MMSegmentation, I want all of my Deep Learning projects to be
