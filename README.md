@@ -1,6 +1,6 @@
 # ShallowMind
-### A general ANN framework inspired by MMSegmentation
-
+### A general self-use ANN framework inspired by MMSegmentation
+![Shallow Mind](misc/featured.png)
 ---------------------------------------------------------------------------
 Inspired by MMSegmentation, I want all of my Deep Learning projects to be
 simplified to a single 'config.py', and do not need to worried about training 
@@ -49,4 +49,4 @@ Demo image classification task on CIFAR10 with the ResNet50 backbone from Timm M
 $ cd shallowmind && python api/train.py --config configs/image_classification_example.py
 ```
 ### Example
-* [ResNet50 on CIFAR10](configs/image_classification_example.py) 94.11% Top1 Acc
+* [ResNet50 on CIFAR10 in 100 epochs from a scratch](configs/image_classification_example.py) 94.11% Top1 Acc 
