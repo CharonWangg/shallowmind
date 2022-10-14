@@ -76,11 +76,11 @@ class BaseEmbedding(pl.LightningModule):
 class LinearEmbedding(pl.LightningModule):
     '''linear embedding layer'''
 
-    def __init__(self, input_length, embedding_size, position=False, input_norm=None, reshape_list=None, **kwargs):
+    def __init__(self, input_length, in_channels, embedding_size, position=False, input_norm=None, reshape_list=None, **kwargs):
         super(LinearEmbedding, self).__init__()
         self.input_length = input_length
         self.embedding_size = embedding_size
-        self.embedding = nn.Linear(input_length, embedding_size, **kwargs)
+        self.embedding = nn.Linear(in_channels, embedding_size, **kwargs)
         self.position = position
         self.reshape_list = reshape_list
         if self.reshape_list is not None:
@@ -182,7 +182,7 @@ class PositionEmbedding(pl.LightningModule):
 class PatchEmbedding(pl.LightningModule):
     # PatchEmbedding is a module that takes a sequence and returns an embedding of its patches.
     def __init__(self, in_channels=1, input_length=512, embedding_size=128, patch_size=512, stride=None,
-                 input_norm=None, mode='1d', reshape_list=['b l c', 'b c l'], **kwargs):
+                 input_norm=None, mode='1d', reshape_list=['b l c', 'b c l'], cls_token=True, **kwargs):
         super().__init__()
         assert mode in ['1d', '2d'], 'mode must be either 1d or 2d'
         self.input_length = input_length
@@ -199,12 +199,15 @@ class PatchEmbedding(pl.LightningModule):
                 nn.Conv1d(in_channels, embedding_size, kernel_size=patch_size, stride=stride, **kwargs),
                 Rearrange(f'{reshape_list[1]} -> {reshape_list[0]}'),
             )
-            self.cls_token = nn.Parameter(torch.randn(1, 1, embedding_size))
-            if stride == patch_size:
-                self.positions = nn.Parameter(torch.randn((input_length // patch_size) + 1, embedding_size))
+            if cls_token:
+                self.cls_token = nn.Parameter(torch.randn(1, 1, embedding_size))
             else:
-                self.positions = nn.Parameter(
-                    torch.randn(((input_length - patch_size) // stride + 1) + 1, embedding_size))
+                self.cls_token = None
+            if stride == patch_size:
+                new_length = (input_length // patch_size) + 1 if self.cls_token is not None else input_length // patch_size
+            else:
+                new_length = (input_length - patch_size) // stride + 1 if self.cls_token is not None else \
+                    (input_length - patch_size) // stride
         elif mode == '2d':
             # 2d patch embedding
             if reshape_list == ['b l c', 'b c l']:
@@ -215,12 +218,17 @@ class PatchEmbedding(pl.LightningModule):
                 nn.Conv2d(in_channels, embedding_size, kernel_size=patch_size, stride=stride, **kwargs),
                 Rearrange(f'{reshape_list[0]} -> {reshape_list[1]}'),
             )
-            self.cls_token = nn.Parameter(torch.randn(1, 1, embedding_size))
-            if stride == patch_size:
-                self.positions = nn.Parameter(torch.randn((input_length // patch_size) + 1, embedding_size))
+            if cls_token:
+                self.cls_token = nn.Parameter(torch.randn(1, 1, embedding_size))
             else:
-                self.positions = nn.Parameter(
-                    torch.randn(((input_length - patch_size) // stride + 1) + 1, embedding_size))
+                self.cls_token = None
+            if stride == patch_size:
+                new_length = (input_length // patch_size) + 1 if self.cls_token is not None else (input_length // patch_size)
+            else:
+                new_length = ((input_length - patch_size) // stride + 1) + 1 if self.cls_token is not None else \
+                    ((input_length - patch_size) // stride + 1)
+        self.positions = nn.Parameter(
+            torch.randn(new_length, embedding_size))
 
         if input_norm is not None:
             self.input_norm = Norm(input_norm)
@@ -232,8 +240,9 @@ class PatchEmbedding(pl.LightningModule):
             x = self.input_norm(x)
         b = x.shape[0]
         x = self.projection(x)
-        cls_tokens = repeat(self.cls_token, '() n e -> b n e', b=b)
-        # add the cls token to the beginning of the embedding
-        x = torch.cat([cls_tokens, x], dim=1)
+        if self.cls_token is not None:
+            cls_tokens = repeat(self.cls_token, '() n e -> b n e', b=b)
+            # add the cls token to the beginning of the embedding
+            x = torch.cat([cls_tokens, x], dim=1)
         x += self.positions
         return x

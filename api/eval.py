@@ -14,7 +14,7 @@ from shallowmind.src.utils import load_config
 
 torch.multiprocessing.set_sharing_strategy('file_system')
 
-def test():
+def test(test_cfg_hook=None):
     parser = ArgumentParser()
     parser = Trainer.add_argparse_args(parser)
     parser.add_argument('--cfg', type=str, help='config file path')
@@ -49,6 +49,8 @@ def test():
         torch.backends.cudnn.benchmark = True
 
     # data
+    if test_cfg_hook is not None:
+        cfg = test_cfg_hook(cfg)
     data_module = DataInterface(cfg.data)
 
     # for models need setting readout layer with dataloader information

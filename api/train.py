@@ -143,8 +143,13 @@ def train():
             # dict of scheduling {epoch: accumulation_steps, ...}
             callbacks.append(plc.GradientAccumulationScheduler(scheduling=cfg.optimization.accumulation_steps))
 
+    # used to skip validation when training
+    if cfg.get('skip_val', False):
+        args.limit_val_batches = 0
+        args.num_sanity_val_steps = 0
+
     # used to control early stopping
-    if cfg.log.earlystopping is not None:
+    if cfg.log.get('earlystopping', None) is not None and cfg.get('skip_val', False):
         callbacks.append(plc.EarlyStopping(
             monitor=cfg.log.get('monitor', 'val_loss'),
             mode=cfg.log.earlystopping.get('mode', 'max'),

@@ -5,5 +5,6 @@ from .torchvision import TorchVision
 from .cd_lingam import CDLiNGAM
 from .ci_lingam import CILiNGAM
 from .friendship import Friendship
+from .dual_imagenet import DualImageNet
 
-__all__ = ['Sensorium', 'NMOS6502', 'NetSim', 'TorchVision', 'CDLiNGAM', 'CILiNGAM', 'Friendship']
+__all__ = ['Sensorium', 'NMOS6502', 'NetSim', 'TorchVision', 'CDLiNGAM', 'CILiNGAM', 'Friendship', 'DualImageNet']
