@@ -15,7 +15,6 @@ from shallowmind.src.data import DataInterface
 from argparse import ArgumentParser
 from shallowmind.src.utils import load_config
 from shallowmind.src.model.utils import OptimizerResumeHook
-from pytorch_lightning.callbacks import RichProgressBar
 
 torch.multiprocessing.set_sharing_strategy('file_system')
 
@@ -202,11 +201,6 @@ def train():
             if 'tensorboard' in logger.type:
                 loggers.append(TensorBoardLogger(save_dir=save_dir))
         args.logger = loggers
-
-    # load rich progress bar if comet logger is not used
-    if not (cfg.log.logger is not None and any(['comet' in logger.type for logger in cfg.log.logger])):
-        args.callbacks.append(RichProgressBar())
-
 
     # load trainer
     trainer = Trainer.from_argparse_args(args)

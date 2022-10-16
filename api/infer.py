@@ -15,6 +15,36 @@ from shallowmind.src.utils import load_config
 
 torch.multiprocessing.set_sharing_strategy('file_system')
 
+
+def search_cfg_ckpt(target_dir, keyword=None, screen=None, target_suffix=["ckpt", "py"]):
+    # search files by given keywords and suffix, and screened keywords under target directory
+    find_res = []
+    target_suffix_dot = ["." + suffix for suffix in target_suffix]
+    walk_generator = os.walk(target_dir)
+    for root_path, dirs, files in walk_generator:
+        if len(files) < 1:
+            continue
+        for file in files:
+            file_name, suffix_name = os.path.splitext(file)
+            if suffix_name in target_suffix_dot:
+                file_name = os.path.join(root_path, file)
+                # keyword check
+                if keyword is not None:
+                    _check = 0
+                    for word in keyword:
+                        if word in file_name:
+                            _check += 1
+                    if screen is not None:
+                        for screen_word in screen:
+                                if screen_word in file_name:
+                                    _check -= 1
+                    if _check == len(keyword):
+                            find_res.append(file_name)
+                else:
+                    find_res.append(file_name)
+    return find_res
+
+
 def prepare_inference(cfg, ckpt):
     # load model and data config settings from config file
     cfg = load_config(cfg)
