@@ -41,6 +41,7 @@ model = dict(
 # dataset settings
 dataset_type = 'TorchVision'
 dataset_name = 'CIFAR10'
+data_root = '.cache'
 
 # training data preprocess pipeline
 train_pipeline = [dict(type='LoadImages'),
@@ -68,6 +69,7 @@ data = dict(
     train=dict(
         type=dataset_type,
         dataset_name=dataset_name,
+        data_root=data_root,
         train=True,
         sampler=None,  # None is default sampler, set to RandomSampler/DistributedSampler
         pipeline=train_pipeline
@@ -75,6 +77,7 @@ data = dict(
     val=dict(
         type=dataset_type,
         dataset_name=dataset_name,
+        data_root=data_root,
         train=False,
         sampler='SequentialSampler',
         pipeline=test_pipeline,
@@ -82,6 +85,7 @@ data = dict(
     test=dict(
         type=dataset_type,
         dataset_name=dataset_name,
+        data_root=data_root,
         train=False,
         sampler='SequentialSampler',
         pipeline=test_pipeline
@@ -93,7 +97,7 @@ log = dict(
     # project name, used for cometml
     project_name='cifar_test',
     # work directory, used for saving checkpoints and loggings
-    work_dir='/data2/charon/test/ckpts',
+    work_dir='work_dir',
     # explicit directory under work_dir for checkpoints and config
     exp_name='model=vit_B-dataset=cifar10-lr=1e-3',
     logger_interval=50,
