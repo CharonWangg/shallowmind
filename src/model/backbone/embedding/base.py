@@ -209,7 +209,7 @@ class PatchEmbedding(pl.LightningModule):
             # 2d patch embedding
             if reshape_list == ['b l c', 'b c l']:
                 # 2d patch embedding special case
-                reshape_list = ['b (h w) c', 'b c (h w)']
+                reshape_list = ['b c h w', 'b (h w) c']
 
             self.projection = nn.Sequential(
                 nn.Conv2d(in_channels, embedding_size, kernel_size=patch_size, stride=stride, **kwargs),
@@ -217,10 +217,10 @@ class PatchEmbedding(pl.LightningModule):
             )
             self.cls_token = nn.Parameter(torch.randn(1, 1, embedding_size))
             if stride == patch_size:
-                self.positions = nn.Parameter(torch.randn((input_length // patch_size) + 1, embedding_size))
+                self.positions = nn.Parameter(torch.randn(((input_length // patch_size)**2) + 1, embedding_size))
             else:
                 self.positions = nn.Parameter(
-                    torch.randn(((input_length - patch_size) // stride + 1) + 1, embedding_size))
+                    torch.randn((((input_length - patch_size) // stride + 1)**2) + 1, embedding_size))
 
         if input_norm is not None:
             self.input_norm = Norm(input_norm)

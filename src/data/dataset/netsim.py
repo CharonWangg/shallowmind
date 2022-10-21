@@ -43,7 +43,7 @@ class NetSim(torch.utils.data.Dataset):
                         'effect': k,
                         'start_index': start,
                         'end_index': start+self.duration,
-                        'label': 1 if data['net'][i][j, k] > 0 else 0
+                        'label': 1 if data['net'][i][j, k] != 0 else 0
                     })
 
     def __getitem__(self, idx):

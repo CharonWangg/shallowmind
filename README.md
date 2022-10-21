@@ -69,4 +69,4 @@ for batch in di.test_dataloader():
         output = mi(batch)
 ```
 ### Example
-* [ResNet50 on CIFAR10 in 100 epochs from a scratch](configs/image_classification_example.py) 94.11% Top1 Acc 
+* [ResNet50 on CIFAR10 in 100 epochs from a scratch](configs/resnet50_image_classification_example.py) 94.11% Top1 Acc 
