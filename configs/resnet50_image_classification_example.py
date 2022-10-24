@@ -7,13 +7,21 @@ loss = [dict(type='TorchLoss', loss_name='CrossEntropyLoss', loss_weight=1.0)]
 model = dict(
     # Base Encoder Decoder Architecture (Backbone+Head)
     type='BaseEncoderDecoder',
+    need_dataloader=True,
     # Visual Backbone from Timm Models library
+    # need to change the input conv layer to (kernel_size=3, stride=1, padding=1) to accept 32x32 input
     backbone=dict(
         type='TimmModels',
         model_name='resnet50',
         features_only=False,
         remove_fc=True,
-        pretrained=False
+        pretrained=False,
+        magic_replacement=['conv1', 'nn.Conv2d(3, 64, '
+                                    'kernel_size=(3, 3), '
+                                    'stride=(1, 1), '
+                                    'padding=(1, 1), '
+                                    'bias=False)'],
+
     ),
     # Linear Head for classification
     head=dict(

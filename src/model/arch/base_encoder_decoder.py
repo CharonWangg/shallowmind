@@ -1,78 +1,39 @@
+import torch
 import torch.nn as nn
 import pytorch_lightning as pl
-from ..utils import add_prefix
+from ..utils import add_prefix, infer_output_shape
 from ..builder import ARCHS
 from ..builder import build_backbone, build_head
-from ...data.pipeline import Compose
+from .base import BaseArch
+
 
 @ARCHS.register_module()
-class BaseEncoderDecoder(pl.LightningModule):
-    def __init__(self, backbone, head, auxiliary_head=None, pipeline=None):
-        super(BaseEncoderDecoder, self).__init__()
+class BaseEncoderDecoder(BaseArch):
+    def __init__(self, backbone, head, auxiliary_head=None, **kwargs):
+        super(BaseEncoderDecoder, self).__init__(**kwargs)
         assert backbone is not None, 'backbone is not defined'
         assert head is not None, 'head is not defined'
         self.name = 'BaseEncoderDecoder'
         # build backbone
         self.backbone = build_backbone(backbone)
+        self.backbone.model.conv1 = nn.Conv2d(3, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
         # build decode head
-        if head.get('in_channels', None) is None:
-            head.in_channels = self.backbone.feature_channels[head.get('in_index', -1)]
+        head.in_channels = self.infer_input_shape_for_head(head)
         self.head = build_head(head)
         # build auxiliary head
         if auxiliary_head is not None:
             if isinstance(auxiliary_head, list):
                 self.auxiliary_head = nn.ModuleList()
                 for aux_head in auxiliary_head:
+                    aux_head.in_channels = self.infer_input_shape_for_head(aux_head)
                     self.auxiliary_head.append(build_head(aux_head))
             else:
+                auxiliary_head.in_channels = self.infer_input_shape_for_head(auxiliary_head)
                 self.auxiliary_head = nn.ModuleList([build_head(auxiliary_head)])
         else:
             self.auxiliary_head = None
 
-    def exact_feat(self, x):
-        x = self.backbone(x)
-        return x
-
-    def forward_decode_train(self, feat, label):
-        loss = dict()
-        decode_loss = self.head.forward_train(feat, label)
-        loss.update(add_prefix(f'mainhead', decode_loss))
-        return loss
-
-    def forward_auxiliary_train(self, feat, label):
-        loss = dict()
-        if self.auxiliary_head is not None:
-            for idx, auxiliary_head in enumerate(self.auxiliary_head):
-                loss.update(add_prefix(f'auxhead{idx}', auxiliary_head.forward_train(feat, label)))
-        return loss
-
-    def forward_train(self, x, label):
-        loss = dict()
-        feat = self.exact_feat(x)
-
-        loss.update(self.forward_decode_train(feat, label))
-        loss.update(self.forward_auxiliary_train(feat, label))
-
-        # sum up all losses
-        loss.update({'loss': sum([loss[k] for k in loss.keys() if 'loss' in k.lower()])})
-
-        # pack the output and losses
-        return loss
-
-    def forward_test(self, x, label=None):
-        feat = self.exact_feat(x)
-        res = self.head.forward_test(feat, label)
-
-        # sum up all losses
-        if label is not None:
-            res.update({'loss': sum([res[k] for k in res.keys() if 'loss' in k.lower()])})
-        else:
-            res.update({'loss': 'Not available'})
-        return res
-
-
-
-
-
-
-
+        # pop out dataloader
+        self.pipeline_model()
+        self.pop_dataloader()
+        self.pop_pipeline()

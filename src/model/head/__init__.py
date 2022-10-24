@@ -1,5 +1,6 @@
-from .base import BaseHead
+from .base import BaseLayer
+from .base_head import BaseHead
 from .pooler import BasePooler
 from .neuralpredictors import NeuralPredictors
 
-__all__ = ["BaseHead", "BasePooler", "NeuralPredictors"]
+__all__ = ["BaseLayer", "BaseHead", "BasePooler", "NeuralPredictors"]

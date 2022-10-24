@@ -5,13 +5,13 @@ import torch.nn as nn
 import pytorch_lightning as pl
 from ..utils import add_prefix
 from ..builder import ARCHS
-from ..builder import build_arch, build_backbone, build_neck, build_head, build_loss
+from .base import BaseArch
 from ..head import BaseHead
 from einops.layers.torch import Rearrange, Reduce
 
 
 @ARCHS.register_module()
-class SLDiscoEncoder(pl.LightningModule):
+class SLDiscoEncoder(BaseArch):
     def __init__(self, backbone, head, **kwargs):
         super(SLDiscoEncoder, self).__init__(**kwargs)
         self.name = 'SLDiscoEncoder'
@@ -58,40 +58,3 @@ class SLDiscoEncoder(pl.LightningModule):
         x = nn.MaxPool2d(2, stride=1)(x)
         x = x.view(x.shape[0], -1)
         return [x]
-
-    def forward_decode_train(self, feat, label):
-        loss = dict()
-        decode_loss = self.head.forward_train(feat, label)
-        loss.update(add_prefix(f'mainhead', decode_loss))
-        return loss
-
-    def forward_auxiliary_train(self, feat, label):
-        loss = dict()
-        if self.auxiliary_head is not None:
-            for idx, auxiliary_head in enumerate(self.auxiliary_head):
-                loss.update(add_prefix(f'auxhead{idx}', auxiliary_head.forward_train(feat, label)))
-        return loss
-
-    def forward_train(self, x, label):
-        loss = dict()
-        feat = self.exact_feat(x)
-
-        loss.update(self.forward_decode_train(feat, label))
-        loss.update(self.forward_auxiliary_train(feat, label))
-
-        # sum up all losses
-        loss.update({'loss': sum([loss[k] for k in loss.keys() if 'loss' in k.lower()])})
-
-        # pack the output and losses
-        return loss
-
-    def forward_test(self, x, label=None):
-        feat = self.exact_feat(x)
-        res = self.head.forward_test(feat, label)
-
-        # sum up all losses
-        if label is not None:
-            res.update({'loss': sum([res[k] for k in res.keys() if 'loss' in k.lower()])})
-        else:
-            res.update({'loss': 'Not available'})
-        return res

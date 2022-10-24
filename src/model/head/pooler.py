@@ -2,7 +2,8 @@ import math
 import torch
 import torch.nn as nn
 from ..builder import build_loss, HEADS
-from .base import BaseHead
+from .base_head import BaseHead
+
 
 @HEADS.register_module()
 class BasePooler(BaseHead):
@@ -44,7 +45,7 @@ class BasePooler(BaseHead):
             q = self.q(x)
             k = self.k(x)
             v = self.v(x)
-            qk = torch.matmul(q, k.transpose(-2, -1)) /  math.sqrt(self.in_channels)
+            qk = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.in_channels)
             attention_scores = qk.softmax(dim=-1)
             pooled_output = torch.matmul(attention_scores, v).sum(dim=1)
 

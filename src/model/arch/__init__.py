@@ -1,3 +1,4 @@
+from .base import BaseArch
 from .base_encoder_decoder import BaseEncoderDecoder
 from .sldisco_encoder import SLDiscoEncoder
 from .neural_encoder import NeuralEncoder

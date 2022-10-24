@@ -3,6 +3,7 @@ import torch.nn as nn
 import pytorch_lightning as pl
 from ..builder import BACKBONES
 from ..builder import build_embedding
+from ..utils import magic_replace
 from ast import literal_eval
 
 
@@ -10,7 +11,7 @@ from ast import literal_eval
 class TimmModels(pl.LightningModule):
     '''call the backbones in TIMM library'''
     def __init__(self, model_name, embedding=None, features_only=True, remove_fc=True, pretrained=True,
-                 checkpoint_path='', in_channels=3, num_classes=1000, **kwargs):
+                 checkpoint_path='', in_channels=3, num_classes=1000, magic_replacement=[], **kwargs):
         super(TimmModels, self).__init__()
         if embedding is not None:
             self.embedding = build_embedding(embedding)
@@ -43,6 +44,9 @@ class TimmModels(pl.LightningModule):
             self.feature_channels = [info['num_chs'] for info in self.model.feature_info]
         elif not features_only and not remove_fc:
             self.feature_channels = [info['num_chs'] for info in self.model.feature_info]
+
+        # Magic replacement
+        self.model = magic_replace(self.model, magic_replacement)
 
     def forward(self, x):
         if isinstance(x, dict):

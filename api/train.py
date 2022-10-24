@@ -71,7 +71,6 @@ def train():
     # log(logger, checkpoint, work_dir) -> Trainer /other
 
     # other setting
-    # other setting
     if cfg.get('cudnn_benchmark', True):
         args.benchmark = True
 
@@ -96,7 +95,7 @@ def train():
     else:
         raise NotImplementedError('You must choose optimziation update step from (epoch/iter)')
 
-    # for models need setting readout layer with dataloader informatios
+    # for models need automatically infer layer's output shape with dataloader information
     if cfg.model.get('archs', None) is not None:
         for arch in cfg.model.archs:
             if arch.pop('need_dataloader', False):

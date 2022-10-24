@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import neuralpredictors.layers.readouts as readouts
 import pytorch_lightning as pl
-from .base import BaseHead
+from .base_head import BaseHead
 from ..builder import HEADS
 
 def pairwise_squared_euclidean_f_by_n(x):
