@@ -38,7 +38,7 @@ class BaseLayer(pl.LightningModule):
         output = self.forward(input, **kwargs)
         if label is not None:
             losses = self.parse_losses(output, label)
-            return {**{'output':output}, **losses}
+            return {**{'output': output}, **losses}
         else:
             return {'output': output}
 

@@ -201,6 +201,11 @@ def train():
                 loggers.append(TensorBoardLogger(save_dir=save_dir))
         args.logger = loggers
 
+    # skip validation
+    if cfg.model.get('evaluation', None) is None or cfg.get('skip_validation', False):
+        args.limit_val_batches = 0
+        args.num_sanity_val_steps = 0
+
     # load trainer
     trainer = Trainer.from_argparse_args(args)
 

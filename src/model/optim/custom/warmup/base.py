@@ -1,3 +1,5 @@
+# modified from https://github.com/Tony-Y/pytorch_warmup
+
 import math
 from contextlib import contextmanager
 from torch.optim import Optimizer
@@ -22,6 +24,7 @@ def get_warmup_params(period, group_count):
         raise TypeError('{} is not a list nor an int.'.format(
             type(period).__name__))
     return warmup_params
+
 
 @SCHEDULERS.register_module()
 class BaseWarmup(object):
@@ -77,6 +80,7 @@ class BaseWarmup(object):
     def warmup_factor(self, step, **params):
         raise NotImplementedError
 
+
 @SCHEDULERS.register_module()
 class LinearWarmup(BaseWarmup):
     """Linear warmup schedule.
@@ -94,6 +98,7 @@ class LinearWarmup(BaseWarmup):
 
     def warmup_factor(self, step, period):
         return min(1.0, (step+1) / period)
+
 
 @SCHEDULERS.register_module()
 class ExponentialWarmup(BaseWarmup):

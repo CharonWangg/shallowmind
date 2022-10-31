@@ -1,7 +1,4 @@
-import torch
 import torch.nn as nn
-import pytorch_lightning as pl
-from ..utils import add_prefix, infer_output_shape
 from ..builder import ARCHS
 from ..builder import build_backbone, build_head
 from .base import BaseArch
@@ -16,7 +13,6 @@ class BaseEncoderDecoder(BaseArch):
         self.name = 'BaseEncoderDecoder'
         # build backbone
         self.backbone = build_backbone(backbone)
-        self.backbone.model.conv1 = nn.Conv2d(3, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
         # build decode head
         head.in_channels = self.infer_input_shape_for_head(head)
         self.head = build_head(head)
@@ -34,6 +30,4 @@ class BaseEncoderDecoder(BaseArch):
             self.auxiliary_head = None
 
         # pop out dataloader
-        self.pipeline_model()
-        self.pop_dataloader()
-        self.pop_pipeline()
+        self.cleanup()

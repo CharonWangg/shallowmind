@@ -1,6 +1,7 @@
 import torch
 from ..builder import OPTIMIZERS
 
+
 # TODO: many redundancies, need integrate to one BaseOptimizer class
 
 
@@ -100,4 +101,48 @@ class Bert(torch.optim.AdamW):
         else:
             params = model.parameters()
 
-        super(Bert, self).__init__(params=params, weight_decay=weight_decay, eps=eps, correct_bias=correct_bias, **kwargs)
+        super(Bert, self).__init__(params=params, weight_decay=weight_decay, eps=eps, correct_bias=correct_bias,
+                                   **kwargs)
+
+
+@OPTIMIZERS.register_module()
+class TorchOptimizer:
+    def __init__(self, model, optimizer_name='SGD', weight_decay=5e-4,
+                 filter_norm_and_bias=False, **kwargs):
+        if filter_norm_and_bias:
+            no_decay, decay = exclude_norm_and_bias(model)
+            params = [{"params": decay,
+                       "weight_decay": weight_decay
+                       },
+                      {"params": no_decay,
+                       "weight_decay": 0.0
+                       }]
+        else:
+            params = model.parameters()
+        self.optimizer = getattr(torch.optim, optimizer_name)(params=params, weight_decay=weight_decay, **kwargs)
+
+    def step(self, closure=None):
+        self.optimizer.step(closure=closure)
+
+    def zero_grad(self):
+        self.optimizer.zero_grad()
+
+    def state_dict(self):
+        return self.optimizer.state_dict()
+
+    def load_state_dict(self, state_dict):
+        self.optimizer.load_state_dict(state_dict)
+
+    def __getattr__(self, name):
+        return getattr(self.optimizer, name)
+
+    def __repr__(self):
+        return self.optimizer.__repr__()
+
+    def __str__(self):
+        return self.optimizer.__str__()
+
+    def __dir__(self):
+        return self.optimizer.__dir__()
+
+

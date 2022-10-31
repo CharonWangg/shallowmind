@@ -1,0 +1,141 @@
+# model settings
+# 10 classes for mnist
+num_classes = 10
+# loss function, set multiple losses if needed, allow weighted sum
+valid_loss = dict(type='TorchLoss', loss_name='BCEWithLogitsLoss', loss_weight=1.0)
+cat_loss = dict(type='TorchLoss', loss_name='CrossEntropyLoss', loss_weight=1.0)
+
+model = dict(
+    # Base GAN Architecture (Generator+Discriminator)
+    type='BaseGAN',
+    need_dataloader=True,
+    # need to change the input conv layer to (kernel_size=3, stride=1, padding=1) to accept 32x32 input
+    discriminator=dict(
+        type='BaseEncoderDecoder',
+        backbone=dict(
+            type='BaseConvNet',
+            in_channels=1,
+            hidden_size=[32, 64],
+            kernel_size=[5, 5],
+            stride=[1, 1],
+            padding=[0, 0],
+            act_cfg=dict(type='LeakyReLU', negative_slope=0.2),
+        ),
+        head=dict(
+            type='BaseHead',
+            in_index=-1,
+            dropout=0.0,
+            num_classes=1,
+            losses=valid_loss
+        ),
+        # auxiliary_head=dict(
+        #     type='BaseHead',
+        #     in_index=-1,
+        #     dropout=0.0,
+        #     num_classes=num_classes,
+        #     losses=cat_loss
+        # ),
+    ),
+    generator=dict(
+        type='ConvTransHead',
+        in_channels=128,
+        hidden_size=[64, 1],
+        kernel_size=[4, 4],
+        stride=[2, 2],
+        padding=[1, 1],
+        act_cfg=dict(type='LeakyReLU', negative_slope=0.2),
+        losses=valid_loss,
+    ),
+    evaluation=dict(metrics=[dict(type='ImageVisualization', n_samples=3)])
+)
+
+# dataset settings
+dataset_type = 'TorchVision'
+dataset_name = 'MNIST'
+data_root = '.cache'
+
+# training data preprocess pipeline
+train_pipeline = [dict(type='LoadImages', to_RGB=False),
+                  dict(type='ToTensor')]
+
+# validation data preprocess pipeline
+test_pipeline = [dict(type='LoadImages', to_RGB=False),
+                 dict(type='ToTensor')]
+
+data = dict(
+    train_batch_size=128,  # for single card
+    val_batch_size=256,
+    test_batch_size=256,
+    num_workers=4,
+    train=dict(
+        type=dataset_type,
+        dataset_name=dataset_name,
+        data_root=data_root,
+        train=True,
+        sampler=None,  # None is default sampler, set to RandomSampler/DistributedSampler
+        pipeline=train_pipeline
+        ),
+    val=dict(
+        type=dataset_type,
+        dataset_name=dataset_name,
+        data_root=data_root,
+        train=False,
+        sampler='SequentialSampler',
+        pipeline=test_pipeline,
+        ),
+    test=dict(
+        type=dataset_type,
+        dataset_name=dataset_name,
+        data_root=data_root,
+        train=False,
+        sampler='SequentialSampler',
+        pipeline=test_pipeline
+    ),
+)
+
+# yapf:disable
+log = dict(
+    # project name, used for cometml
+    project_name='gan_test',
+    # work directory, used for saving checkpoints and loggings
+    work_dir='work_dir',
+    # explicit directory under work_dir for checkpoints and config
+    exp_name='model=gan-dataset=mnist-lr=1e-5',
+    logger_interval=50,
+    # monitor metric for saving checkpoints
+    monitor='step',
+    # logger type, support TensorboardLogger, CometLogger
+    logger=[dict(type='comet', key='oN1q8cGSIrH0zhorxKpNoenyc')],
+    # checkpoint saving settings
+    checkpoint=dict(type='ModelCheckpoint',
+                    top_k=1,
+                    mode='max',
+                    verbose=True,
+                    save_last=False,
+                    ),
+    # early stopping settings
+    earlystopping=None
+
+)
+
+# yapf:enable
+# resume from a checkpoint
+resume_from = None
+cudnn_benchmark = True
+
+# optimization
+optimization = dict(
+    # running time unit, support epoch and iter
+    type='epoch',
+    # total running units
+    max_iters=200,
+    # optimizer
+    optimizer=dict(type='Multiple', optimizers=[dict(type='Adam', lr=2e-4,
+                                                     corresponding_params='generator'),
+                                                dict(type='Adam', lr=2e-4,
+                                                     corresponding_params='discriminator'
+                                                     )],),
+
+    # learning rate scheduler and warmup
+    scheduler=None
+)

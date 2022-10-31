@@ -35,9 +35,17 @@ class BaseArch(pl.LightningModule):
     def forward_train(self, x, label):
         loss = dict()
         feat = self.exact_feat(x)
-
-        loss.update(self.forward_decode_train(feat, label))
-        loss.update(self.forward_auxiliary_train(feat, label))
+        if isinstance(label, dict):
+            # multi-label multi-loss learning
+            for label_type, label_value in label.items():
+                if 'main' in label_type:
+                    loss.update(self.forward_decode_train(feat, label_value))
+                if 'aux' in label_type:
+                    loss.update(self.forward_auxiliary_train(feat, label_value))
+        else:
+            # single-label multi-loss learning
+            loss.update(self.forward_decode_train(feat, label))
+            loss.update(self.forward_auxiliary_train(feat, label))
 
         # sum up all losses
         loss.update({'loss': sum([loss[k] for k in loss.keys() if 'loss' in k.lower()])})
@@ -70,6 +78,12 @@ class BaseArch(pl.LightningModule):
         if getattr(self, 'pipeline', None) is not None:
             self.__dict__.pop('pipeline')
 
+    def cleanup(self):
+        # pop out things don't need to be saved
+        self.pipeline_model()
+        self.pop_dataloader()
+        self.pop_pipeline()
+
     def infer_input_shape_for_head(self, head, flatten=True):
         if head.get('in_channels', None) is None:
             if getattr(self, 'dataloader', None) is not None:
@@ -91,12 +105,3 @@ class BaseArch(pl.LightningModule):
         else:
             in_channels = head.in_channels
         return in_channels
-
-
-
-
-
-
-
-
-

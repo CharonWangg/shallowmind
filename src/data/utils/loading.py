@@ -7,6 +7,7 @@ def cycle(iterable):
         except StopIteration:
             iterator = iter(iterable)
 
+
 class MaxCycleLoader:
     """
     Cycles through loaders until the loader with largest size
