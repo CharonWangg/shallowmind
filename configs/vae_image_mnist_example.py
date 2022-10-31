@@ -2,7 +2,7 @@
 # 10 classes for mnist
 num_classes = 10
 # loss function, set multiple losses if needed, allow weighted sum
-reg_loss = dict(type='KLDivergence', loss_weight=0.1)
+reg_loss = dict(type='KLDivergenceLoss', loss_weight=0.1)
 rec_loss = dict(type='TorchLoss', loss_name='MSELoss', step_reduction=None, loss_weight=1.0)
 
 model = dict(

@@ -6,10 +6,10 @@ from torch.autograd import Variable
 
 
 @LOSSES.register_module()
-class KLDivergence(pl.LightningModule):
+class KLDivergenceLoss(pl.LightningModule):
     # compute KL divergence between two distributions (torch.distributions)
-    def __init__(self, loss_name='KLDivergence', reduction='mean', loss_weight=1.0):
-        super(KLDivergence, self).__init__()
+    def __init__(self, loss_name='KLDivergenceLoss', reduction='mean', loss_weight=1.0):
+        super(KLDivergenceLoss, self).__init__()
         self.loss_name = loss_name
         self.reduction = reduction
         self.loss_weight = loss_weight
