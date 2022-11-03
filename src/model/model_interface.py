@@ -176,7 +176,7 @@ class ModelInterface(pl.LightningModule):
                              for opt, scl in zip(optimizers, scheduler_cfg.schedulers)]
             elif scheduler_cfg.get('type') != 'Multiple':
                 # share the same scheduler for all optimizers
-                scheduler = [self.configure_scheduler(optimizers, scheduler_cfg, max_epochs, max_steps)]
+                scheduler = [self.configure_scheduler(optimizers[0], scheduler_cfg, max_epochs, max_steps)]
             else:
                 raise ValueError("Multiple scheduler can not be applied to a single optimizer")
             return optimizers, scheduler
@@ -222,9 +222,10 @@ class ModelInterface(pl.LightningModule):
                 raise TypeError(f"Metrics must be a list or a dict, received {type(metrics)} type!")
 
     def configure_meta_keys(self):
+        self.meta_keys = []
         if self.model.get('evaluation', None) is not None:
             metrics = deepcopy(self.model.evaluation.get('metrics', dict(type='TorchMetircs', metric_name='Accuracy')).copy())
-            self.meta_keys = []
+
             if isinstance(metrics, list):
                 for metric in metrics:
                     self.meta_keys.append(metric.get('by', None))
