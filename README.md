@@ -8,20 +8,26 @@ So I decide to make a config-based training tool based on Pytorch-lightning with
 
 Now support:
   * Custom Model Class
-    * Architecture like BaseEncoderDecoder, FiringRateEncoder, NeuralEncoders, 
+    * Base/General architecture like 
+      * BaseEncoderDecoder (for Classification/Regression)
+      * BaseVAE (for Recognition/Generation)
+      * BaseGAN (for Generation)
+      * BaseDQN (for Reinforcement Learning)
+    * Specific architecture like FiringRateEncoder/NeuralEncoder/SLDiscoEncoder
     * Backbone, 
-      * Embedding layers like Base/Linear/Convolutional
-      * LSTM/Transformer/TCN/Timm_models/NeuralPredictors
-    * Head like MLP, Poolers
+      * Embedding layers like Base/Linear/Convolutional/PositionalEncoding
+      * MLP/BaseConvNet/LSTM/Transformer/TCN/Timm_models/NeuralPredictors
+    * Head like MLP/Poolers/ConvTransposeHead
   * Custom Dataset Class
     * Single dataset and Multiple datasets concatenation
     * Pipeline for augmentations from Albumentations, Tsaug, etc
   * Various Optimizers and Schedulers 
     * Warmup like Linear, Cosine
-    * Optimizers like Adam, AdamW, SGD, etc
-    * Schedulers like OneCycleLR, CosineAnnealingLR, etc
+    * Optimizers like Adam, AdamW, SGD, etc (support multiple simultaneous optimizers)
+    * Schedulers like OneCycleLR, CosineAnnealingLR, etc (support multiple simultaneous schedulers)
   * Various Loss and Metrics
-    * Multi loss fusion like CrossEntropy, BCE, FocalLoss, etc
+    * Multi loss fusion like CrossEntropy, BCE, FocalLoss, etc (support weighted multi loss/auxiliary loss)
+    * Multi metric mainly based on torchmetrics
   * Logging and Checkpointing
   * Distributed Training
   * Simple api train/infer for use
@@ -34,7 +40,7 @@ your special one.
       ...
 )
 
-Will expand it with my own projects (Next probably Huggingface series and more NLP stuffs)!
+Will expand it with my own projects!
 
 
 ---------------------------------------------------------------------------
@@ -69,4 +75,8 @@ for batch in di.test_dataloader():
         output = mi(batch)
 ```
 ### Example
-* [ResNet50 on CIFAR10 in 100 epochs from a scratch](configs/resnet50_image_classification_example.py) 94.11% Top1 Acc 
+* [ResNet50 on CIFAR10 in 100 epochs from a scratch](configs/resnet50_image_classification_example.py) 94.11% Top1 Acc
+* [ViT on CIFAR10 in 300 epochs from a scratch](configs/vit_image_classification_example.py)
+* [VAE on MNIST](configs/vae_image_mnist_example.py)
+* [GAN on MNIST](configs/gan_image_mnist_example.py)
+* [DQN on CartPole](configs/dqn_cartpole_example.py)
