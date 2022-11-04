@@ -187,6 +187,7 @@ def train():
     if cfg.log.logger is not None:
         loggers = []
         save_dir = os.path.join(cfg.log.work_dir, cfg.log.exp_name, 'log')
+        os.makedirs(save_dir, exist_ok=True)
         args.log_every_n_steps = cfg.log.logger_interval
         for logger in cfg.log.logger:
             if 'comet' in logger.type:

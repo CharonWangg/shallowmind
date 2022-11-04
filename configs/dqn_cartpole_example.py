@@ -3,10 +3,9 @@
 loss = dict(type='TorchLoss', loss_name='MSELoss', loss_weight=1.0)
 
 model = dict(
-    # Base GAN Architecture (Generator+Discriminator)
+    # Base Deep Q Network (agent -> main network, target network)
     type='BaseAgent',
     need_dataloader=True,
-    # need to change the input conv layer to (kernel_size=3, stride=1, padding=1) to accept 32x32 input
     agent=dict(
         type='BaseEncoderDecoder',
         backbone=dict(

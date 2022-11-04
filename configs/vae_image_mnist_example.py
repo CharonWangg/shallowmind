@@ -6,10 +6,9 @@ reg_loss = dict(type='KLDivergenceLoss', loss_weight=0.1)
 rec_loss = dict(type='TorchLoss', loss_name='MSELoss', step_reduction=None, loss_weight=1.0)
 
 model = dict(
-    # Base GAN Architecture (Generator+Discriminator)
+    # Base VAE Architecture (recognition model + generative model)
     type='BaseVAE',
     need_dataloader=True,
-    # need to change the input conv layer to (kernel_size=3, stride=1, padding=1) to accept 32x32 input
     encoder=dict(
         backbone=dict(
             type='BaseConvNet',
@@ -38,7 +37,7 @@ model = dict(
         act_cfg=dict(type='LeakyReLU', negative_slope=0.2),
         losses=rec_loss,
     ),
-    evaluation=dict(metrics=[dict(type='ImageVisualization', n_samples=3)])
+    evaluation=dict(metrics=[dict(type='ImageVisualization', save=True, n_samples=3)])
 )
 
 # dataset settings
