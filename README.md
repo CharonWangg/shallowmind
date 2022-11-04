@@ -19,6 +19,7 @@ Now support:
       * MLP/BaseConvNet/LSTM/Transformer/TCN/Timm_models/NeuralPredictors
     * Head like MLP/Poolers/ConvTransposeHead
   * Custom Dataset Class
+    * Support public dataset like TorchVision/Gym/NetSim/LiNGAM
     * Single dataset and Multiple datasets concatenation
     * Pipeline for augmentations from Albumentations, Tsaug, etc
   * Various Optimizers and Schedulers 
