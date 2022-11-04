@@ -121,9 +121,11 @@ class ModelInterface(pl.LightningModule):
                 scheduler.step(metric)
 
     def configure_optimizers(self):
-        # dirty hack to register trainer on metrics (in case metrics need to access trainer)
+        # dirty hack to register trainer on metrics&model (in case metrics&model need to access trainer)
+        # TODO: find a better way to do this
         for metric in self.metrics:
             metric.trainer = self.trainer
+            self.model.trainer = self.trainer
 
         # infer the maximun number of epochs and steps
         if self.optimization.get('type', 'epoch') == 'epoch':
@@ -244,7 +246,11 @@ class ModelInterface(pl.LightningModule):
             return self.trainer.max_epochs
 
         limit_batches = self.trainer.limit_train_batches
-        batches = len(self.trainer.datamodule.train_dataloader())
+        try:
+            batches = len(self.trainer.datamodule.train_dataloader())
+        except TypeError:
+            # IterableDataset does not support __len__
+            return None
         batches = min(batches, limit_batches) if isinstance(limit_batches, int) else int(limit_batches * batches)
 
         num_devices = max(1, self.trainer.num_devices)
@@ -259,7 +265,12 @@ class ModelInterface(pl.LightningModule):
             return self.trainer.max_steps
 
         limit_batches = self.trainer.limit_train_batches
-        batches = len(self.trainer.datamodule.train_dataloader())
+        try:
+            batches = len(self.trainer.datamodule.train_dataloader())
+        except TypeError:
+            # IterableDataset does not support __len__
+            return None
+
         batches = min(batches, limit_batches) if isinstance(limit_batches, int) else int(limit_batches * batches)
 
         num_devices = max(1, self.trainer.num_devices)

@@ -6,5 +6,6 @@ from .transformer import Transformer
 from .neuralpredictors import NeuralPredictors
 from .ci_encoder import CIEncoder
 from .base_conv_net import BaseConvNet
+from .mlp import MLP
 
-_all__ = ["TimmModels", "LSTM", "TCN", "Transformer", "NeuralPredictors", "CIEncoder", "BaseConvNet"]
+_all__ = ["TimmModels", "LSTM", "TCN", "Transformer", "NeuralPredictors", "CIEncoder", "BaseConvNet", "MLP"]

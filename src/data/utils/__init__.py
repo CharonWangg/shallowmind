@@ -1,3 +1,3 @@
-from .loading import cycle, MaxCycleLoader
+from .loading import cycle, MaxCycleLoader, ReplayBuffer
 
-__all__ = ["MaxCycleLoader"]
+__all__ = ["MaxCycleLoader", "ReplayBuffer"]
