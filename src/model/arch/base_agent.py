@@ -1,5 +1,4 @@
 import torch
-import torch.nn as nn
 import numpy as np
 from ..builder import ARCHS
 from ..builder import build_arch
@@ -84,14 +83,17 @@ class BaseAgent(BaseArch):
         # play step in the environment
         epsilon = self.get_epsilon()
         reward, done = self.forward_step(self.main_agent, epsilon)
-        self.total_reward += reward
+        self.episode_reward += reward
         # play step in the memory buffer
         losses = self.experience_step(x, label=None)
         # stop criterion has been reached
         if done:
             self.total_reward = self.episode_reward
             self.episode_reward = 0
-        losses.update({'reward': reward, 'total_reward': self.total_reward})
+        losses.update({'epsilon': epsilon,
+                       'reward': reward,
+                       'episode_reward': self.episode_reward,
+                       'total_reward': self.total_reward})
         self.soft_update()
         return losses
 
