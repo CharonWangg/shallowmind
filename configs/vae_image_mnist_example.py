@@ -97,7 +97,7 @@ log = dict(
     # monitor metric for saving checkpoints
     monitor='step',
     # logger type, support TensorboardLogger, CometLogger
-    logger=[dict(type='comet', key='oN1q8cGSIrH0zhorxKpNoenyc')],
+    logger=[dict(type='comet', key='Your Key Here!')],
     # checkpoint saving settings
     checkpoint=dict(type='ModelCheckpoint',
                     top_k=1,
