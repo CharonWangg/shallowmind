@@ -5,7 +5,7 @@ import torch
 import warnings
 import pytorch_lightning as pl
 from pytorch_lightning import Trainer
-from pytorch_lightning.loggers import TensorBoardLogger, CometLogger
+from pytorch_lightning.loggers import TensorBoardLogger, CometLogger, CSVLogger
 import pytorch_lightning.callbacks as plc
 # ugly hack to enable configs inside the package to be run
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -199,6 +199,8 @@ def train():
                                            display_summary_level=0))
             if 'tensorboard' in logger.type:
                 loggers.append(TensorBoardLogger(save_dir=save_dir))
+            if 'csv' in logger.type:
+                loggers.append(CSVLogger(save_dir=save_dir))
         args.logger = loggers
 
     # skip validation
