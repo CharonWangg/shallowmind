@@ -1,2 +1,2 @@
 from .commons import *
-from .hooks import SaveIntermediateHook, OptimizerResumeHook
+from .hooks import OptimizerResumeHook

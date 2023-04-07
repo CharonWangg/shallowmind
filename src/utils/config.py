@@ -26,6 +26,15 @@ DELETE_KEY = '_delete_'
 DEPRECATION_KEY = '_deprecation_'
 RESERVED_KEYS = ['filename', 'text', 'pretty_text']
 
+
+# load config from config file
+def load_config(cfg_path=None):
+    if not os.path.exists(cfg_path):
+        raise FileNotFoundError(f'{cfg_path} not existed!')
+    cfg = Config.fromfile(cfg_path, )
+    return cfg
+
+
 def build_from_cfg(cfg: Dict,
                    registry: 'Registry',
                    default_args: Optional[Dict] = None) -> Any:
@@ -1072,7 +1081,7 @@ class Registry:
         """
         if not isinstance(force, bool):
             raise TypeError(f'force must be a boolean, but got {type(force)}')
-        # NOTE: This is a walkaround to be compatible with the old api,
+        # NOTE: This is a walkaround to be compatible with the old cli,
         # while it may introduce unexpected bugs.
         if isinstance(name, type):
             return self.deprecated_register_module(name, force=force)

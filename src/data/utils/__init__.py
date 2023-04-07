@@ -1,3 +1,3 @@
-from .loading import cycle, MaxCycleLoader, ReplayBuffer
+from .loading import cycle, CombinedCycleDataset
 
-__all__ = ["MaxCycleLoader", "ReplayBuffer"]
+__all__ = ["CombinedCycleDataset"]
