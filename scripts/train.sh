@@ -1,0 +1,1 @@
+python cli/train.py --cfg=YOUR_CONFIG_FILE --gpu_ids=[0]

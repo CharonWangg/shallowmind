@@ -27,14 +27,6 @@ DEPRECATION_KEY = '_deprecation_'
 RESERVED_KEYS = ['filename', 'text', 'pretty_text']
 
 
-# load config from config file
-def load_config(cfg_path=None):
-    if not os.path.exists(cfg_path):
-        raise FileNotFoundError(f'{cfg_path} not existed!')
-    cfg = Config.fromfile(cfg_path, )
-    return cfg
-
-
 def build_from_cfg(cfg: Dict,
                    registry: 'Registry',
                    default_args: Optional[Dict] = None) -> Any:
