@@ -7,7 +7,7 @@ setup(
     author_email="charonwangg@Gmail.com",
     description="A Highly-Distangible Config Based Deep Learning Framework",
 
-    url="https://www.charonwangg.com/project/shallowmind/",
+    url="https://github.com/CharonWangg/shallowmind",
 
     python_requires='>=3.9',
     packages=find_packages(),
